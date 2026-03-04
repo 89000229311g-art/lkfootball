@@ -162,8 +162,23 @@ def run():
     # 3. Fix alembic_version to avoid migration errors                    #
     # ------------------------------------------------------------------ #
     with engine.connect() as conn:
-        conn.execute(text("DELETE FROM alembic_version"))
-        conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('init_db_managed')"))
+        table_exists = conn.execute(
+            text("SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'alembic_version')")
+        ).fetchone()[0]
+
+        if table_exists:
+            conn.execute(text("DELETE FROM alembic_version"))
+            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('init_db_managed')"))
+            log.info("      Alembic version table updated.")
+        else:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS alembic_version (
+                    version_num VARCHAR(32) NOT NULL,
+                    CONSTRAINT alembic_version_pk PRIMARY KEY (version_num)
+                )
+            """))
+            conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('init_db_managed')"))
+            log.info("      Alembic version table created.")
         conn.commit()
 
     # ------------------------------------------------------------------ #
