@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  #-----------------------------------------------------------------------------
+  # PostgreSQL Database
+  #-----------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: football_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Redis Cache
+  #-----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: football_redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # FastAPI Backend
+  #-----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./html
+      dockerfile: Dockerfile.prod
+    container_name: football_backend
+    restart: always
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-http://localhost,http://localhost:80,http://127.0.0.1}
+      - REDIS_URL=redis://redis:6379/0
+      - SMS_API_KEY=${SMS_API_KEY:-}
+      - SMS_SENDER=${SMS_SENDER:-}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    volumes:
+      - ./html/uploads:/app/uploads
+      - ./html/logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Nginx (Frontend & API Proxy)
+  #-----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: football_nginx
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./html/frontend/dist:/usr/share/nginx/html:ro
+      - ./html/uploads:/usr/share/nginx/uploads:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    # УБИРАЕМ блок ports (ports: - "8090:80"), он больше не нужен
+    networks:
+      - academy_network
+      - web # Подключаем к сети Traefik
+    labels:
+      - "traefik.enable=true"
+      # Указываем ваш новый поддомен
+      - "traefik.http.routers.lksunnyfootball.rule=Host(`lk.sunnyfootball.com`)"
+      - "traefik.http.routers.lksunnyfootball.entrypoints=websecure"
+      - "traefik.http.routers.lksunnyfootball.tls.certresolver=myresolver"
+      # Nginx внутри контейнера слушает порт 80 (согласно вашему Dockerfile)
+      - "traefik.http.services.lksunnyfootball.loadbalancer.server.port=80"
+      - "traefik.docker.network=web"
+
+  #-----------------------------------------------------------------------------
+  # Scheduler
+  #-----------------------------------------------------------------------------
+  scheduler:
+    build:
+      context: ./html
+      dockerfile: Dockerfile.prod
+    container_name: football_scheduler
+    restart: always
+    command: python run_scheduler.py
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_network
+    healthcheck:
+      disable: true
+
+  #-----------------------------------------------------------------------------
+  # Backups
+  #-----------------------------------------------------------------------------
+  backup:
+    image: postgres:15-alpine
+    container_name: football_backup
+    restart: "no"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "
+        while true; do
+          echo 'Creating backup...'
+          pg_dump -h db -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/db_backup_$$(date +%Y%m%d_%H%M%S).sql.gz
+          echo 'Backup created. Cleaning old backups...'
+          find /backups -name 'db_backup_*.sql.gz' -mtime +7 -delete
+          echo 'Sleeping for 24 hours...'
+          sleep 86400
+        done
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+networks:
+  academy_network:
+    driver: bridge
+  web:
+    external: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  nginx_logs:

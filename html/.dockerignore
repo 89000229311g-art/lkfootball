@@ -1,0 +1,57 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter
+football_academy_app/.dart_tool/
+football_academy_app/.packages
+football_academy_app/build/
+football_academy_app/.flutter-plugins
+football_academy_app/.flutter-plugins-dependencies
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# SSL certificates
+nginx/ssl/
+
+# Temporary files
+*.tmp
+*.temp

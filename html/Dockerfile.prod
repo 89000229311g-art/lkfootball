@@ -1,0 +1,105 @@
+# Production Dockerfile for Football Academy
+FROM python:3.11-slim
+
+# Метаданные
+LABEL maintainer="Football Academy"
+LABEL version="1.0.0"
+
+# Переменные окружения
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV APP_HOME=/app
+
+WORKDIR $APP_HOME
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    curl \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Создаем непривилегированного пользователя
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+
+# Копируем requirements и устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn
+
+# Копируем код приложения
+COPY --chown=appuser:appgroup . .
+
+# Создаем директории для загрузок и логов
+RUN mkdir -p /app/uploads /app/logs && \
+    chown -R appuser:appgroup /app/uploads /app/logs
+
+# Создаем entrypoint скрипт
+RUN cat > /entrypoint.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "=========================================="
+echo "  Football Academy - Starting Server"
+echo "=========================================="
+
+# Ожидание PostgreSQL
+echo "[1/4] Waiting for PostgreSQL..."
+while ! nc -z ${POSTGRES_SERVER:-db} 5432; do
+    sleep 1
+done
+echo "      PostgreSQL is ready!"
+
+# Ожидание Redis (опционально)
+if [ -n "$REDIS_URL" ]; then
+    REDIS_HOST=$(echo $REDIS_URL | sed 's|redis://||' | cut -d: -f1)
+    REDIS_PORT=$(echo $REDIS_URL | sed 's|redis://||' | cut -d: -f2 | cut -d/ -f1)
+    echo "[2/4] Waiting for Redis ($REDIS_HOST:$REDIS_PORT)..."
+    while ! nc -z $REDIS_HOST $REDIS_PORT; do
+        sleep 1
+    done
+    echo "      Redis is ready!"
+else
+    echo "[2/4] Redis not configured, skipping..."
+fi
+
+# Инициализация БД: создание таблиц + enum-значений + суперпользователя
+echo "[3/3] Initializing database (tables + superuser)..."
+python init_db.py
+
+echo "=========================================="
+echo "  Starting Gunicorn server..."
+echo "=========================================="
+
+# Запуск Gunicorn (production WSGI server)
+exec gunicorn app.main:app \
+    --bind 0.0.0.0:8000 \
+    --workers ${WORKERS:-4} \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --timeout 120 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --access-logfile /app/logs/access.log \
+    --error-logfile /app/logs/error.log \
+    --capture-output \
+    --log-level info
+EOF
+
+RUN chmod +x /entrypoint.sh
+
+# Переключаемся на непривилегированного пользователя
+USER appuser
+
+# Открываем порт
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+# Запуск
+CMD ["/entrypoint.sh"]

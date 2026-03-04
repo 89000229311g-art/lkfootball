@@ -1,0 +1,105 @@
+version: '3.8'
+
+# Локальный запуск (без Traefik)
+# Использование: docker compose -f docker-compose.local.yml up --build
+
+services:
+  # ─── PostgreSQL ───────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: football_db_local
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Chisinau
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lksajdljaldjl12313SS}
+      POSTGRES_DB: ${POSTGRES_DB:-football_academy}
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-football_academy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_local
+
+  # ─── Redis ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: football_redis_local
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data_local:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_local
+
+  # ─── FastAPI Backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./html
+      dockerfile: Dockerfile
+    container_name: football_backend_local
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Chisinau
+      POSTGRES_SERVER: db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lksajdljaldjl12313SS}
+      POSTGRES_DB: ${POSTGRES_DB:-football_academy}
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-lksajdljaldjl12313SS}@db:5432/${POSTGRES_DB:-football_academy}
+      SECRET_KEY: ${SECRET_KEY:-xK9mN2vL8qR5tY7wZ3bF6jH0pS4cD1aE9gU2iO5rT8yW}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_ENABLED: "true"
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:80", "http://127.0.0.1"]'
+      ENVIRONMENT: development
+      DEBUG: "False"
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_SENDER: ${SMS_SENDER:-}
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
+      GOOGLE_SHEETS_ENABLED: "false"
+    volumes:
+      - ./html/uploads:/app/uploads
+      - ./html/logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_local
+
+  # ─── Nginx (Frontend + API proxy) ─────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: football_nginx_local
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./html/frontend/dist:/usr/share/nginx/html:ro
+      - ./html/uploads:/usr/share/nginx/uploads:ro
+    depends_on:
+      - backend
+    networks:
+      - academy_local
+
+networks:
+  academy_local:
+    driver: bridge
+
+volumes:
+  postgres_data_local:
+  redis_data_local:

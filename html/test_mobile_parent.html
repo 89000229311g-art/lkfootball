@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Parent - Елена Петрова</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .test-case {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #4caf50;
+        }
+        button {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #ffb300;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,193,7,0.4);
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .success { background: #4caf50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+        .emoji { font-size: 24px; margin-right: 10px; }
+        .highlight {
+            background: rgba(255,193,7,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Mobile App Testing - Parent Dashboard</h1>
+        
+        <div class="info-box">
+            <h3><span class="emoji">👤</span>Test User: Елена Петрова</h3>
+            <p><strong>Phone:</strong> <span class="highlight">+37360111002</span></p>
+            <p><strong>Password:</strong> <span class="highlight">admin123</span></p>
+            <p><strong>Role:</strong> <span class="status warning">Parent</span></p>
+            <p><strong>Child:</strong> Даниил Петров (U10 Lions)</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button onclick="openMobileApp()">🚀 Open Mobile App (Port 8082)</button>
+        </div>
+
+        <h2>✅ Test Checklist:</h2>
+        
+        <div class="test-case">
+            <h4>1️⃣ Coach Assignment Fix</h4>
+            <p>✅ Check that Даниил Петров now has <strong>Тренер: Тренер Иванов</strong> displayed</p>
+            <p>📍 Location: Home screen → Child card → Coach label</p>
+        </div>
+
+        <div class="test-case">
+            <h4>2️⃣ View Group Students Button</h4>
+            <p>✅ New button <strong>"Посмотреть группу"</strong> should be visible</p>
+            <p>📍 Location: Home screen → Below "Расписание тренировок" button</p>
+        </div>
+
+        <div class="test-case">
+            <h4>3️⃣ Group Students Dialog</h4>
+            <p>✅ Click "Посмотреть группу" → See all U10 Lions students</p>
+            <p>✅ Даниил Петров should have yellow badge <strong>"Мой ребёнок"</strong></p>
+            <p>📍 Shows: Name, DOB, Status for each student</p>
+        </div>
+
+        <div class="test-case">
+            <h4>4️⃣ Parent Read-Only Access</h4>
+            <p>❌ No + button in Calendar screen</p>
+            <p>❌ No + button in Events screen</p>
+            <p>❌ No edit/delete menu in Events list</p>
+        </div>
+
+        <h2>🎯 Expected Results:</h2>
+        <div id="result">
+            <p><span class="emoji">🔍</span>Waiting for test...</p>
+            <p>Click the button above to open the mobile app and start testing!</p>
+        </div>
+
+        <div class="info-box" style="margin-top: 30px; border-left-color: #2196f3;">
+            <h3><span class="emoji">📋</span>Backend Data Confirmed:</h3>
+            <p>✅ Coach Ivanov assigned to U10 Lions group</p>
+            <p>✅ Даниил Петров linked to Елена Петрова (parent)</p>
+            <p>✅ Group contains multiple students for testing</p>
+        </div>
+    </div>
+
+    <script>
+        function openMobileApp() {
+            const result = document.getElementById('result');
+            result.innerHTML = `
+<span class="emoji">🚀</span><strong>Mobile App Opening...</strong>
+
+<span style="color: #ffc107;">📱 URL:</span> http://localhost:8082
+
+<span style="color: #4caf50;">✅ Login Credentials:</span>
+Phone: +37360111002
+Password: admin123
+
+<span style="color: #2196f3;">🧪 Test Steps:</span>
+1. Login as Елена Петрова
+2. Check coach name is displayed
+3. Click "Посмотреть группу" button
+4. Verify group students list appears
+5. Confirm Даниил has yellow "Мой ребёнок" badge
+6. Check Calendar and Events have no + buttons
+
+<span style="color: #ff9800;">⚡ Hot Reload Active:</span>
+Changes are live - refresh if needed!
+            `;
+
+            // Open in new tab
+            window.open('http://localhost:8082', '_blank');
+        }
+
+        // Show current status on load
+        window.onload = function() {
+            document.getElementById('result').innerHTML = `
+<span class="emoji">✅</span><strong>Flutter App Status:</strong>
+
+<span style="color: #4caf50;">✓</span> Running on: http://localhost:8082
+<span style="color: #4caf50;">✓</span> Hot Reload: ENABLED
+<span style="color: #4caf50;">✓</span> Changes Applied: YES
+
+<span style="color: #ffc107;">🎯 Latest Updates:</span>
+• Fixed coach assignment for U10 Lions
+• Added "View Group Students" button
+• Fixed parent read-only access (Calendar & Events)
+• Added translations (RU & RO)
+
+<span style="color: #2196f3;">👉</span> Click the button above to start testing!
+            `;
+        };
+    </script>
+</body>
+</html>

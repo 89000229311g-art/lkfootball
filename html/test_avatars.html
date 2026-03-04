@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Test</title>
+</head>
+<body>
+    <h1>Avatar Loading Test</h1>
+    
+    <h2>User 4 Avatar:</h2>
+    <img src="http://localhost:8000/static/avatars/user_4_20260110_201521.png" 
+         alt="User 4 Avatar" 
+         style="width: 100px; height: 100px; border: 1px solid black;"
+         onload="console.log('User 4 avatar loaded successfully')"
+         onerror="console.error('User 4 avatar failed to load')">
+    
+    <h2>User 6 Avatar:</h2>
+    <img src="http://localhost:8000/static/avatars/user_6_20260110_224436.png" 
+         alt="User 6 Avatar" 
+         style="width: 100px; height: 100px; border: 1px solid black;"
+         onload="console.log('User 6 avatar loaded successfully')"
+         onerror="console.error('User 6 avatar failed to load')">
+    
+    <h2>User 7 Avatar:</h2>
+    <img src="http://localhost:8000/static/avatars/user_7_20260110_225442.png" 
+         alt="User 7 Avatar" 
+         style="width: 100px; height: 100px; border: 1px solid black;"
+         onload="console.log('User 7 avatar loaded successfully')"
+         onerror="console.error('User 7 avatar failed to load')">
+    
+    <script>
+        console.log('Testing avatar loading...');
+        // Test if images are accessible
+        fetch('http://localhost:8000/static/avatars/user_4_20260110_201521.png')
+            .then(response => {
+                console.log('Direct fetch status:', response.status);
+                if (response.ok) {
+                    console.log('✅ Avatar accessible via fetch');
+                } else {
+                    console.log('❌ Avatar not accessible via fetch');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Fetch error:', error);
+            });
+    </script>
+</body>
+</html>

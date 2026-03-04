@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестирование всех пользователей</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .user-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .user-card.super_admin {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .user-card.admin {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .user-card.coach {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .user-card.parent {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .user-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .user-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .user-phone {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            background: rgba(255,255,255,0.3);
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+        
+        .password-info {
+            background: #f0f9ff;
+            border: 2px solid #3b82f6;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .password-info strong {
+            color: #1e40af;
+            font-size: 18px;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тестирование пользователей</h1>
+        <p class="subtitle">Кликните на карточку для автоматического входа</p>
+        
+        <div class="password-info">
+            🔑 Пароль для всех: <strong>admin123</strong>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">👑 Руководитель</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">2</div>
+                <div class="stat-label">🔧 Админы</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1</div>
+                <div class="stat-label">⚽ Тренер</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3</div>
+                <div class="stat-label">👨‍👩‍👧 Родители</div>
+            </div>
+        </div>
+        
+        <div class="users-grid" id="usersGrid"></div>
+    </div>
+    
+    <div class="status" id="status"></div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        
+        const users = [
+            { phone: '+373777777', name: 'Руководитель Академии', role: 'super_admin', icon: '👑', roleLabel: 'Руководитель' },
+            { phone: '+373888888', name: 'Администратор Системы', role: 'admin', icon: '🔧', roleLabel: 'Администратор' },
+            { phone: '+37376624536', name: 'Test Admin', role: 'admin', icon: '🔧', roleLabel: 'Администратор' },
+            { phone: '+373999999', name: 'Тренер Иванов', role: 'coach', icon: '⚽', roleLabel: 'Тренер' },
+            { phone: '+37360111001', name: 'Мария Иванова', role: 'parent', icon: '👨‍👩‍👧', roleLabel: 'Родитель' },
+            { phone: '+37360111002', name: 'Елена Петрова', role: 'parent', icon: '👨‍👩‍👧', roleLabel: 'Родитель' },
+            { phone: '+37360111003', name: 'Ольга Сидорова', role: 'parent', icon: '👨‍👩‍👧', roleLabel: 'Родитель' },
+        ];
+        
+        const grid = document.getElementById('usersGrid');
+        const statusEl = document.getElementById('status');
+        
+        users.forEach(user => {
+            const card = document.createElement('div');
+            card.className = `user-card ${user.role}`;
+            card.innerHTML = `
+                <div class="user-icon">${user.icon}</div>
+                <div class="user-name">${user.name}</div>
+                <div class="user-phone">${user.phone}</div>
+                <div class="user-role">${user.roleLabel}</div>
+            `;
+            
+            card.onclick = () => loginAs(user);
+            grid.appendChild(card);
+        });
+        
+        async function loginAs(user) {
+            try {
+                statusEl.textContent = `⏳ Вход как ${user.name}...`;
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#3b82f6';
+                
+                // OAuth2PasswordRequestForm expects form-data, not JSON
+                const formData = new URLSearchParams();
+                formData.append('username', user.phone);
+                formData.append('password', 'admin123');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    
+                    // Get user info
+                    const userResponse = await fetch(`${API_BASE}/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${data.access_token}`
+                        }
+                    });
+                    
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        localStorage.setItem('user', JSON.stringify(userData));
+                    }
+                    
+                    statusEl.textContent = `✅ Успешно! Вход как ${user.name}`;
+                    statusEl.style.background = '#10b981';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'http://localhost:3004/';
+                    }, 500);
+                } else {
+                    const error = await response.json();
+                    statusEl.textContent = `❌ Ошибка: ${error.detail}`;
+                    statusEl.style.background = '#ef4444';
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                }
+            } catch (error) {
+                statusEl.textContent = `❌ Ошибка сети: ${error.message}`;
+                statusEl.style.background = '#ef4444';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

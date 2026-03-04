@@ -1,0 +1,199 @@
+version: '3.8'
+
+#===============================================================================
+# Football Academy - Production Docker Compose
+# Запуск: docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+#===============================================================================
+
+services:
+  #-----------------------------------------------------------------------------
+  # PostgreSQL Database
+  #-----------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: football_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups  # Для бэкапов
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+    # НЕ открываем порт наружу в production!
+    # ports:
+    #   - "5432:5432"
+
+  #-----------------------------------------------------------------------------
+  # Redis Cache (опционально, но рекомендуется)
+  #-----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: football_redis_prod
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # FastAPI Backend
+  #-----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: football_backend_prod
+    restart: always
+    environment:
+      # Database
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      
+      # Security
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      
+      # CORS
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      
+      # SMS (опционально)
+      - SMS_API_KEY=${SMS_API_KEY:-}
+      - SMS_SENDER=${SMS_SENDER:-}
+      
+      # Firebase (опционально)
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-}
+      
+      # Stripe (для v2)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - academy_network
+    # Только внутренний доступ через nginx
+    expose:
+      - "8000"
+
+  #-----------------------------------------------------------------------------
+  # Nginx Reverse Proxy + SSL
+  #-----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: football_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./uploads:/usr/share/nginx/uploads:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Scheduler (для фоновых задач)
+  #-----------------------------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: football_scheduler_prod
+    restart: always
+    command: python run_scheduler.py
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Автоматические бэкапы
+  #-----------------------------------------------------------------------------
+  backup:
+    image: postgres:15-alpine
+    container_name: football_backup_prod
+    restart: "no"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "
+        while true; do
+          echo 'Creating backup...'
+          pg_dump -h db -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/db_backup_$$(date +%Y%m%d_%H%M%S).sql.gz
+          echo 'Backup created. Cleaning old backups...'
+          find /backups -name 'db_backup_*.sql.gz' -mtime +7 -delete
+          echo 'Sleeping for 24 hours...'
+          sleep 86400
+        done
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+#-----------------------------------------------------------------------------
+# Networks
+#-----------------------------------------------------------------------------
+networks:
+  academy_network:
+    driver: bridge
+
+#-----------------------------------------------------------------------------
+# Volumes
+#-----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  nginx_logs:
+    driver: local

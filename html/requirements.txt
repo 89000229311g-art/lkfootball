@@ -1,0 +1,72 @@
+fastapi>=0.100.0
+uvicorn>=0.23.0
+watchfiles>=0.21.0
+sqlalchemy>=2.0.0,<3.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+alembic>=1.12.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+psycopg2-binary>=2.9.1
+python-dotenv>=1.0.0
+pytest>=7.0.0
+httpx>=0.25.0
+python-dateutil>=2.8.2
+
+# ФАЗА 3: Async PostgreSQL
+asyncpg>=0.31.0
+greenlet>=3.0.0
+
+# ФАЗА 6: Media Storage
+Pillow>=11.0.0
+boto3>=1.42.0
+
+# Additional
+bcrypt==4.0.1
+openai>=1.0.0  # Added for AI Service
+pytz>=2024.1
+
+
+# ФАЗА 5: Background Tasks - SMS Providers (опционально)
+# Раскомментировать нужный провайдер:
+# twilio>=8.0.0  # Для Twilio SMS
+# vonage>=3.0.0  # Для Nexmo/Vonage SMS
+aiohttp>=3.9.0  # Для SMS.ru и других HTTP API
+
+# ФАЗА 5: Background Tasks Queue (опционально для масштабирования)
+# Для обработки > 1000 пользователей рекомендуется использовать очереди:
+# redis>=5.0.0  # Redis для очередей задач
+# celery>=5.3.0  # Celery для фоновых задач
+# flower>=2.0.0  # Мониторинг Celery задач
+
+# ФАЗА 5: Google Sheets API
+gspread>=6.0.0
+google-auth>=2.16.0
+
+# Security & Performance
+slowapi>=0.1.9  # Rate limiting
+redis>=5.0.0  # Caching and rate limit storage
+structlog>=24.1.0  # Structured logging
+cryptography>=42.0.0  # AES encryption for credentials
+
+# Production Server
+gunicorn>=21.0.0  # Production WSGI server
+uvloop>=0.19.0  # Fast event loop
+httptools>=0.6.0  # Fast HTTP parsing
+
+# Push Notifications
+firebase-admin>=6.2.0  # Firebase Cloud Messaging
+pywebpush>=1.14.0
+
+# Analytics Export
+openpyxl>=3.1.0
+google-api-python-client>=2.0.0
+psutil>=5.9.0
+
+# Missing Dependencies
+apscheduler>=3.10.0  # Scheduler for background tasks
+requests>=2.31.0     # Synchronous HTTP client (legacy/tests)
+aiosqlite>=0.19.0    # Async SQLite driver (dev/tests)
+pytz>=2024.1
+apscheduler>=3.10.0

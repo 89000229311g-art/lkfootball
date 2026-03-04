@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  #-----------------------------------------------------------------------------
+  # Traefik Reverse Proxy (SSL & Routing)
+  #-----------------------------------------------------------------------------
+  traefik:
+    image: traefik:v2.10
+    container_name: football_traefik
+    restart: always
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Let's Encrypt Resolver
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@sunnyfootball.com}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # PostgreSQL Database
+  #-----------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: football_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Redis Cache
+  #-----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: football_redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # FastAPI Backend
+  #-----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: football_backend
+    restart: always
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - REDIS_URL=redis://redis:6379/0
+      - SMS_API_KEY=${SMS_API_KEY:-}
+      - SMS_SENDER=${SMS_SENDER:-}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Nginx (Frontend & API Proxy)
+  #-----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: football_nginx
+    restart: always
+    volumes:
+      - ./nginx/nginx.server.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./uploads:/usr/share/nginx/uploads:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN:-sunnyfootball.com}`) || Host(`www.${DOMAIN:-sunnyfootball.com}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Scheduler
+  #-----------------------------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: football_scheduler
+    restart: always
+    command: python run_scheduler.py
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+  #-----------------------------------------------------------------------------
+  # Backups
+  #-----------------------------------------------------------------------------
+  backup:
+    image: postgres:15-alpine
+    container_name: football_backup
+    restart: "no"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "
+        while true; do
+          echo 'Creating backup...'
+          pg_dump -h db -U $${POSTGRES_USER} $${POSTGRES_DB} | gzip > /backups/db_backup_$$(date +%Y%m%d_%H%M%S).sql.gz
+          echo 'Backup created. Cleaning old backups...'
+          find /backups -name 'db_backup_*.sql.gz' -mtime +7 -delete
+          echo 'Sleeping for 24 hours...'
+          sleep 86400
+        done
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - academy_network
+
+networks:
+  academy_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  nginx_logs:

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parent Login Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        button { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Parent Access Test</h1>
+        <p>Testing parent role - should only VIEW, not edit</p>
+        
+        <button onclick="loginParent()">1. Login as Parent (Мария Иванова)</button><br>
+        <button onclick="testViewEvents()">2. ✅ Test VIEW Events (should work)</button><br>
+        <button onclick="testCreateEvent()">3. ❌ Test CREATE Event (should be blocked)</button><br>
+        <button onclick="openWebApp()">4. 🌐 Open Web App</button>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        let token = '';
+        const API = 'http://localhost:8000/api/v1';
+        
+        async function loginParent() {
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', '+37360111001');
+                formData.append('password', 'admin123');
+                
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: formData
+                });
+                const data = await res.json();
+                token = data.access_token;
+                localStorage.setItem('token', token);
+                
+                const userRes = await fetch(`${API}/auth/me`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const user = await userRes.json();
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                show(`✅ Logged in as ${user.full_name} (Role: ${user.role})`, 'success');
+            } catch (e) {
+                show(`❌ Login failed: ${e.message}`, 'error');
+            }
+        }
+        
+        async function testViewEvents() {
+            if (!token) {
+                show('❌ Login first!', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/events/?limit=5`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                show(`✅ SUCCESS: Parent can view ${data.total} events`, 'success');
+            } catch (e) {
+                show(`❌ ${e.message}`, 'error');
+            }
+        }
+        
+        async function testCreateEvent() {
+            if (!token) {
+                show('❌ Login first!', 'error');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/events/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        group_id: 3,
+                        type: 'training',
+                        start_time: '2026-01-20T18:00:00',
+                        end_time: '2026-01-20T19:30:00',
+                        location: 'Test'
+                    })
+                });
+                const data = await res.json();
+                if (res.status === 403) {
+                    show(`✅ CORRECT: Parent is BLOCKED from creating events (${data.detail})`, 'success');
+                } else {
+                    show(`❌ WRONG: Parent was allowed to create event!`, 'error');
+                }
+            } catch (e) {
+                show(`❌ ${e.message}`, 'error');
+            }
+        }
+        
+        function openWebApp() {
+            if (!token) {
+                show('❌ Login first!', 'error');
+                return;
+            }
+            window.open('http://localhost:3004/', '_blank');
+            show('✅ Opened web app in new tab. Check that parent cannot add/edit events!', 'success');
+        }
+        
+        function show(msg, type) {
+            document.getElementById('result').innerHTML = `<div class="result ${type}">${msg}</div>`;
+        }
+    </script>
+</body>
+</html>

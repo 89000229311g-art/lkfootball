@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Parent Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #333; margin-bottom: 10px; text-align: center; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        .test-btn {
+            width: 100%;
+            padding: 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        .test-btn:hover { background: #5568d3; transform: translateY(-2px); }
+        .test-btn:active { transform: translateY(0); }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        .result pre {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .credentials {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .credentials h3 { margin-bottom: 15px; color: #333; }
+        .cred-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        .label { font-weight: 600; color: #666; }
+        .value { 
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍👩‍👧 Test Parent Login</h1>
+        <p class="subtitle">Quick API Test for Mobile App</p>
+
+        <div class="credentials">
+            <h3>🔑 Test Credentials</h3>
+            <div class="cred-item">
+                <span class="label">Login:</span>
+                <span class="value">parent</span>
+            </div>
+            <div class="cred-item">
+                <span class="label">Password:</span>
+                <span class="value">123</span>
+            </div>
+            <div class="cred-item">
+                <span class="label">Role:</span>
+                <span class="value">parent</span>
+            </div>
+        </div>
+
+        <button class="test-btn" onclick="testLogin()">
+            🚀 Test Login API
+        </button>
+
+        <button class="test-btn" onclick="testWithToken()">
+            👤 Get User Info (requires login first)
+        </button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let accessToken = null;
+
+        async function testLogin() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Testing...';
+            btn.disabled = true;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'username=parent&password=123'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.access_token) {
+                    accessToken = data.access_token;
+                    showResult(true, 'Login Successful!', {
+                        'Access Token': accessToken.substring(0, 50) + '...',
+                        'Token Type': data.token_type,
+                        'Status': '✅ Ready to use'
+                    });
+                } else {
+                    showResult(false, 'Login Failed', data);
+                }
+            } catch (error) {
+                showResult(false, 'Connection Error', {
+                    'Error': error.message,
+                    'Backend URL': API_URL,
+                    'Tip': 'Make sure backend is running: uvicorn app.main:app --reload'
+                });
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function testWithToken() {
+            if (!accessToken) {
+                alert('Please login first!');
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Loading...';
+            btn.disabled = true;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult(true, 'User Info Retrieved', {
+                        'Full Name': data.full_name,
+                        'Phone': data.phone,
+                        'Role': data.role,
+                        'ID': data.id,
+                        'Avatar': data.avatar_url || 'None'
+                    });
+                } else {
+                    showResult(false, 'Failed to get user info', data);
+                }
+            } catch (error) {
+                showResult(false, 'Connection Error', {
+                    'Error': error.message
+                });
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function showResult(success, title, data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            
+            let html = `<strong>${success ? '✅' : '❌'} ${title}</strong>`;
+            
+            if (data) {
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
