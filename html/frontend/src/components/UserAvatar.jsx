@@ -9,16 +9,14 @@ const UserAvatar = ({
   children
 }) => {
   const [error, setError] = useState(false);
-  const hasAvatar = !!user?.avatar_url;
   let imgSrc = null;
+  const hasAvatar = !!user?.avatar_url;
   if (hasAvatar) {
     if (user.avatar_url.startsWith('http')) {
       imgSrc = user.avatar_url;
     } else {
-      const baseUrl = import.meta.env.VITE_API_URL
-        ? import.meta.env.VITE_API_URL.replace('/api/v1', '')
-        : 'http://localhost:8000';
-      imgSrc = `${baseUrl}${user.avatar_url}`;
+      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || '';
+      imgSrc = `${baseUrl}${user.avatar_url}${user.avatar_url.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
     }
   }
 

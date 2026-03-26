@@ -24,14 +24,17 @@ const AvatarUpload = ({ currentAvatar, onUpload, onDelete, size = 'large' }) => 
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    const isImage = file.type.startsWith('image/');
+    const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic');
+
+    if (!isImage && !isHeic) {
       alert(t('only_images_allowed') || 'Только изображения разрешены (JPG, PNG)');
       return;
     }
 
     // Validate HEIC (Apple format) - often problematic for direct preview/upload without conversion
-    if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
-        alert(t('heic_not_supported') || 'Формат HEIC (Apple) пока не поддерживается напрямую. Пожалуйста, сделайте скриншот фото или измените настройки камеры на "Наиболее совместимый" (JPEG), чтобы загрузить фото прямо с телефона.');
+    if (isHeic) {
+        alert(t('heic_not_supported_long') || 'Формат HEIC (Apple) пока не поддерживается напрямую. \n\nСовет для iPhone:\n1. Сделайте скриншот нужного фото.\n2. Или измените настройки камеры: Настройки -> Камера -> Форматы -> "Наиболее совместимый".\n3. Или используйте любой онлайн-конвертер в JPEG.');
         return;
     }
 
@@ -41,22 +44,27 @@ const AvatarUpload = ({ currentAvatar, onUpload, onDelete, size = 'large' }) => 
       return;
     }
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target.result);
-    reader.readAsDataURL(file);
+    // Show preview (local)
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
 
     // Upload
     setUploading(true);
     try {
       await onUpload(file);
     } catch (error) {
-      console.error('Upload error:', error);
-      const msg = error.response?.data?.detail || error.message || 'Ошибка загрузки';
-      alert(`${t('upload_failed') || 'Ошибка загрузки'}: ${msg}`);
+      console.error('Upload error details:', error);
+      const serverMsg = error.response?.data?.detail;
+      const errorMsg = serverMsg || error.message || 'Ошибка сервера';
+      
+      alert(`${t('upload_failed') || 'Ошибка загрузки'}: ${errorMsg}`);
+      
+      // Revert preview on failure
       setPreview(currentAvatar);
     } finally {
       setUploading(false);
+      // Clean up local preview URL
+      URL.revokeObjectURL(previewUrl);
     }
   };
 

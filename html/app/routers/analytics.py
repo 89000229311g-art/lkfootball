@@ -8,6 +8,9 @@ from app.core.deps import get_current_user, get_db
 from app.models import User, Payment, Student, Group, Attendance, Event, AttendanceStatus, StudentSkills, UserRole, SalaryPayment, Expense
 from app.services.analytics_export_service import export_monthly_analytics_task
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ==================== EXPORT ENDPOINTS ====================
@@ -381,130 +384,120 @@ async def get_coach_performance(
 
     performance_data = []
     
+    import traceback
+    
     # Pre-fetch some data if possible, but loop is fine for N < 100 coaches
     for coach in coaches:
-        # 1. Win Rate (Games)
-        # Games for groups where this coach is assigned (primary)
-        # Note: coach_groups (secondary) relationship not currently in User model
-        all_group_ids = [g.id for g in coach.coached_groups]
-        
-        games_query = db.query(Event).filter(
-            Event.group_id.in_(all_group_ids),
-            Event.type == "game",
-            Event.status == "completed",
-            Event.start_time >= start_date
-        ) if all_group_ids else db.query(Event).filter(Event.id == -1)
-        if end_date:
-            games_query = games_query.filter(Event.start_time <= datetime.combine(end_date, datetime.max.time()))
+        try:
+            # 1. Win Rate (Games)
+            # Games for groups where this coach is assigned (primary)
+            all_group_ids = [g.id for g in coach.coached_groups]
             
-        games = games_query.all()
-        total_games = len(games)
-        wins = 0
-        for game in games:
-            # Check if scores exist
-            if game.score_home is None or game.score_away is None:
-                continue
+            # Use case-insensitive comparison or Enum
+            games_query = db.query(Event).filter(
+                Event.group_id.in_(all_group_ids),
+                func.lower(Event.type) == "game",
+                Event.status == "completed",
+                Event.start_time >= start_date
+            ) if all_group_ids else db.query(Event).filter(Event.id == -1)
+            
+            if end_date:
+                games_query = games_query.filter(Event.start_time <= datetime.combine(end_date, datetime.max.time()))
                 
-            # Logic: If home_away is 'home', we are home team. If 'away', we are away team.
-            # If not specified, assume 'home'.
-            is_home = (game.home_away or 'home').lower() == 'home'
+            games = games_query.all()
+            total_games = len(games)
+            wins = 0
+            for game in games:
+                # Check if scores exist
+                if game.score_home is None or game.score_away is None:
+                    continue
+                    
+                is_home = (game.home_away or 'home').lower() == 'home'
+                
+                if is_home:
+                    if game.score_home > game.score_away:
+                        wins += 1
+                else:
+                    if game.score_away > game.score_home:
+                        wins += 1
             
-            if is_home:
-                if game.score_home > game.score_away:
-                    wins += 1
-            else:
-                if game.score_away > game.score_home:
-                    wins += 1
-        
-        win_rate = (wins / total_games * 100) if total_games > 0 else 0
+            win_rate = (wins / total_games * 100) if total_games > 0 else 0
 
-        # 2. Attendance Rate
-        # Events led by this coach: all events for coach's groups
-        events_query = db.query(Event.id).filter(
-            Event.group_id.in_(all_group_ids),
-            Event.start_time >= start_date
-        ) if all_group_ids else db.query(Event.id).filter(Event.id == -1)
-        
-        if end_date:
-            end_dt = datetime.combine(end_date, datetime.max.time())
-            events_query = events_query.filter(Event.start_time <= end_dt)
-            
-        event_ids = [e.id for e in events_query.all()]
-        
-        attendance_rate = 0
-        if event_ids:
-            # We must only count attendance records that actually exist or should exist.
-            # Total records = count of ALL attendance records for these events
-            # (Assuming attendance records are created for all students in group when event starts/ends)
-            # Better metric: Count 'Present' + 'Late' vs Total records
-            
-            stats = db.query(
-                func.count(Attendance.id).label('total'),
-                func.sum(case((Attendance.status.in_([AttendanceStatus.PRESENT, AttendanceStatus.LATE]), 1), else_=0)).label('present')
-            ).filter(Attendance.event_id.in_(event_ids)).first()
-            
-            total_recs = stats.total or 0
-            present_recs = stats.present or 0
-            
-            attendance_rate = (present_recs / total_recs * 100) if total_recs > 0 else 0
+            # 2. Attendance Rate
+            attendance_rate = 0
+            if all_group_ids:
+                events_query = db.query(Event.id).filter(
+                    Event.group_id.in_(all_group_ids),
+                    Event.start_time >= start_date
+                )
+                
+                if end_date:
+                    end_dt = datetime.combine(end_date, datetime.max.time())
+                    events_query = events_query.filter(Event.start_time <= end_dt)
+                    
+                event_ids = [e.id for e in events_query.all()]
+                
+                if event_ids:
+                    stats = db.query(
+                        func.count(Attendance.id).label('total'),
+                        func.sum(case((Attendance.status.in_([AttendanceStatus.PRESENT, AttendanceStatus.LATE]), 1), else_=0)).label('present')
+                    ).filter(Attendance.event_id.in_(event_ids)).first()
+                    
+                    total_recs = stats.total or 0
+                    present_recs = stats.present or 0
+                    attendance_rate = (present_recs / total_recs * 100) if total_recs > 0 else 0
 
-        # 3. Retention (Active Students in Coach's Groups)
-        # Groups where coach is primary
-        all_groups = coach.coached_groups
-        
-        active_students = 0
-        total_students_linked = 0
-        
-        for group in all_groups:
-            # We can use the relationship group.students
-            # But we need to filter/count
-            g_students = group.students
-            for s in g_students:
-                total_students_linked += 1
-                if s.status == "active":
-                    active_students += 1
-        
-        retention_rate = (active_students / total_students_linked * 100) if total_students_linked > 0 else 0
-
-        # 4. Skill & Discipline (Ratings given by this coach)
-        # We look at StudentSkills records created by this coach
-        skills_query = db.query(
-            func.avg(StudentSkills.discipline).label('avg_discipline'),
-            func.avg(StudentSkills.technique + StudentSkills.tactics + StudentSkills.physical + StudentSkills.speed).label('avg_skills')
-        ).filter(
-            StudentSkills.rated_by_id == coach.id,
-            StudentSkills.created_at >= start_date
-        )
-        
-        if end_date:
-            skills_query = skills_query.filter(StudentSkills.created_at <= datetime.combine(end_date, datetime.max.time()))
+            # 3. Retention (Active Students in Coach's Groups)
+            all_groups = coach.coached_groups
+            active_students = 0
+            total_students_linked = 0
             
-        skills_stats = skills_query.first()
-        avg_discipline = float(skills_stats.avg_discipline or 0)
-        # avg_skills is sum of 4 skills, let's normalize to 10-point scale roughly or just keep sum
-        # User asked for "Development". High average might mean generous grading or good development.
-        # Let's return the raw average sum (max 40) + discipline (max 10)
-        avg_skill_sum = float(skills_stats.avg_skills or 0)
-        
-        # Normalize skill score to 0-100% relative to max (40 points for 4 skills)
-        # Wait, skills are 5: technique, tactics, physical, discipline, speed.
-        # In query above I summed 4 (excluding discipline). Max is 40.
-        skill_score_pct = (avg_skill_sum / 40 * 100) if avg_skill_sum > 0 else 0
+            for group in all_groups:
+                g_students = group.students
+                for s in g_students:
+                    total_students_linked += 1
+                    if s.status == "active":
+                        active_students += 1
+            
+            retention_rate = (active_students / total_students_linked * 100) if total_students_linked > 0 else 0
 
-        performance_data.append({
-            "id": coach.id,
-            "name": coach.full_name,
-            "avatar_url": coach.avatar_url,
-            "win_rate": round(win_rate, 1),
-            "total_games": total_games,
-            "wins": wins,
-            "attendance_rate": round(attendance_rate, 1),
-            "retention_rate": round(retention_rate, 1),
-            "active_students": active_students,
-            "total_students": total_students_linked,
-            "avg_discipline": round(avg_discipline, 1),
-            "avg_skill_score_pct": round(skill_score_pct, 1) # 0-100 scale of physical/tech/tactics/speed
-        })
+            # 4. Skill & Discipline (Ratings given by this coach)
+            skills_query = db.query(
+                func.avg(StudentSkills.discipline).label('avg_discipline'),
+                func.avg(StudentSkills.technique + StudentSkills.tactics + StudentSkills.physical + StudentSkills.speed).label('avg_skills')
+            ).filter(
+                StudentSkills.rated_by_id == coach.id,
+                StudentSkills.created_at >= start_date
+            )
+            
+            if end_date:
+                skills_query = skills_query.filter(StudentSkills.created_at <= datetime.combine(end_date, datetime.max.time()))
+                
+            skills_stats = skills_query.first()
+            avg_discipline = float(skills_stats.avg_discipline or 0)
+            avg_skill_sum = float(skills_stats.avg_skills or 0)
+            
+            skill_score_pct = (avg_skill_sum / 40 * 100) if avg_skill_sum > 0 else 0
+
+            performance_data.append({
+                "id": coach.id,
+                "name": coach.full_name,
+                "avatar_url": coach.avatar_url,
+                "win_rate": round(win_rate, 1),
+                "total_games": total_games,
+                "wins": wins,
+                "attendance_rate": round(attendance_rate, 1),
+                "retention_rate": round(retention_rate, 1),
+                "active_students": active_students,
+                "total_students": total_students_linked,
+                "avg_discipline": round(avg_discipline, 1),
+                "avg_skill_score_pct": round(skill_score_pct, 1)
+            })
+        except Exception as e:
+            logger.error(f"Error calculating performance for coach {coach.id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Skip this coach but continue with others
+            continue
 
     return performance_data
 

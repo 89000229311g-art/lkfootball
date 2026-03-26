@@ -472,7 +472,7 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
-                src={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || ''}${student.avatar_url}`}
+                src={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || ''}${student.avatar_url}${student.avatar_url.includes('?') ? '&' : '?'}t=${new Date().getTime()}`}
                 alt={transliterate(student.first_name, language)}
                 className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
                 onClick={(e) => e.stopPropagation()} 

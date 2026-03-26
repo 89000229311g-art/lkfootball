@@ -29,39 +29,77 @@ ALLOWED_MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".
 ALLOWED_DOC_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx"}
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB for videos
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def save_file(file: UploadFile, directory: Path, allowed_extensions: set, prefix: str = "file") -> str:
     """
-    Save uploaded file and return the file path.
+    Save uploaded file and return the file path starting with /.
+    Ensure directory exists and has correct permissions.
     """
-    # Validate file extension
-    file_ext = Path(file.filename).suffix.lower()
-    if file_ext not in allowed_extensions:
+    try:
+        if not directory.exists():
+            directory.mkdir(parents=True, exist_ok=True)
+            # Ensure the directory is writable by everyone if we're in Docker
+            # this is a common fix for volume permission issues on Linux
+            try:
+                os.chmod(directory, 0o777)
+            except Exception:
+                pass
+    except Exception as e:
+        logger.error(f"Failed to create directory {directory}: {e}")
+        raise HTTPException(status_code=500, detail=f"Server filesystem error: {str(e)}")
+
+    # Validate file extension (case-insensitive)
+    original_filename = file.filename or "unknown"
+    file_ext = Path(original_filename).suffix.lower()
+    
+    # Check for HEIC/HEIF and give specific error or instruction
+    if file_ext in [".heic", ".heif"]:
         raise HTTPException(
             status_code=400,
-            detail=f"File type not allowed. Allowed types: {', '.join(allowed_extensions)}"
+            detail="Apple HEIC format is not supported directly. Please convert to JPEG or take a screenshot."
+        )
+
+    if file_ext not in allowed_extensions:
+        allowed_list = ", ".join(sorted(list(allowed_extensions)))
+        raise HTTPException(
+            status_code=400,
+            detail=f"File extension {file_ext} not allowed. Supported: {allowed_list}"
         )
     
     # Generate unique filename
-    timestamp = get_now().strftime("%Y%m%d_%H%M%S")  # Moldova timezone
-    filename = f"{prefix}_{timestamp}{file_ext}"
+    timestamp = get_now().strftime("%Y%m%d_%H%M%S")
+    # Clean prefix
+    safe_prefix = "".join(c for c in prefix if c.isalnum() or c in "_-")
+    filename = f"{safe_prefix}_{timestamp}{file_ext}"
     filepath = directory / filename
     
     # Save file
     try:
         with filepath.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        # Ensure the file is readable by Nginx
+        try:
+            os.chmod(filepath, 0o644)
+        except Exception:
+            pass
+            
     except Exception as e:
+        logger.error(f"Failed to save file to {filepath}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
     
-    # Return relative path (for storing in database)
-    # If directory starts with 'static', use /static/...
-    # If directory starts with 'uploads', use /uploads/...
-    path_str = str(filepath)
-    if path_str.startswith("static/"):
-        return f"/{path_str}"
-    elif path_str.startswith("uploads/"):
-        return f"/{path_str}"
-    return f"/{path_str}"
+    # Return path starting with / for frontend consistency
+    # Important: if the path is relative to /app, we want /uploads/...
+    # Path('uploads/avatars/file.jpg') -> 'uploads/avatars/file.jpg'
+    path_str = str(filepath).replace("\\", "/")
+    if not path_str.startswith("/"):
+        path_str = "/" + path_str
+        
+    logger.info(f"File saved successfully: {path_str}")
+    return path_str
 
 
 def save_avatar(file: UploadFile, prefix: str = "user") -> str:

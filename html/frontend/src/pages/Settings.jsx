@@ -352,7 +352,18 @@ export default function Settings() {
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="flex-shrink-0">
             <AvatarUpload
-              currentAvatar={user?.avatar_url ? `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || ''}${user.avatar_url}?t=${new Date().getTime()}` : null}
+              currentAvatar={(() => {
+                if (!user?.avatar_url) return null;
+                // If it's already an absolute URL, use it
+                if (user.avatar_url.startsWith('http')) return user.avatar_url;
+                
+                // Get base API URL (remove /api/v1)
+                const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || '';
+                
+                // Handle /static legacy paths vs /uploads
+                // (Optional: if we move everything to /uploads, this might not be needed)
+                return `${baseUrl}${user.avatar_url}?t=${new Date().getTime()}`;
+              })()}
               onUpload={handleUploadAvatar}
               onDelete={handleDeleteAvatar}
               size="large"
@@ -580,7 +591,12 @@ export default function Settings() {
             {children.map(child => (
               <div key={child.id} className="flex items-center gap-4 p-4 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                 <AvatarUpload
-                  currentAvatar={child.avatar_url ? `${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || ''}${child.avatar_url}?t=${new Date().getTime()}` : null}
+                  currentAvatar={(() => {
+                    if (!child.avatar_url) return null;
+                    if (child.avatar_url.startsWith('http')) return child.avatar_url;
+                    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || '';
+                    return `${baseUrl}${child.avatar_url}${child.avatar_url.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+                  })()}
                   onUpload={(file) => handleUploadChildAvatar(child.id, file)}
                   onDelete={() => handleDeleteChildAvatar(child.id)}
                   size="medium"

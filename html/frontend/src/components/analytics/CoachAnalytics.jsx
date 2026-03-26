@@ -29,21 +29,12 @@ export default function CoachAnalytics({ startDate, endDate }) {
     }
   }, [startDate, endDate]);
 
-  const rankedData = useMemo(() => {
-    if (!data.length) return [];
-    
-    // Calculate Score: 
-    // Win Rate (30%) + Attendance (30%) + Retention (20%) + Development (20%)
-    return data.map(coach => {
-      const score = (
-        (coach.win_rate * 0.3) + 
-        (coach.attendance_rate * 0.3) + 
-        (coach.retention_rate * 0.2) + 
-        (coach.avg_skill_score_pct * 0.2)
-      );
-      return { ...coach, score: Math.round(score * 10) / 10 };
-    }).sort((a, b) => b.score - a.score);
-  }, [data]);
+  const getAvatarUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || '';
+    return `${baseUrl}${url}${url.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+  };
 
   if (loading) {
     return (
@@ -69,6 +60,16 @@ export default function CoachAnalytics({ startDate, endDate }) {
     );
   }
 
+  const rankedData = data.map(coach => {
+    const score = (
+      (coach.win_rate * 0.3) + 
+      (coach.attendance_rate * 0.3) + 
+      (coach.retention_rate * 0.2) + 
+      (coach.avg_skill_score_pct * 0.2)
+    );
+    return { ...coach, score: Math.round(score * 10) / 10 };
+  }).sort((a, b) => b.score - a.score);
+
   const top3 = rankedData.slice(0, 3);
   const rest = rankedData.slice(3);
 
@@ -82,7 +83,7 @@ export default function CoachAnalytics({ startDate, endDate }) {
             <div className="relative mb-2 md:mb-4">
               <div className="w-12 h-12 md:w-24 md:h-24 rounded-full border-2 md:border-4 border-gray-300 overflow-hidden shadow-lg shadow-gray-500/20">
                 {top3[1].avatar_url ? (
-                  <img src={top3[1].avatar_url} alt={top3[1].name} className="w-full h-full object-cover" />
+                  <img src={getAvatarUrl(top3[1].avatar_url)} alt={top3[1].name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gray-700 flex items-center justify-center text-lg md:text-2xl font-bold text-gray-300">
                     {top3[1].name[0]}
@@ -107,7 +108,7 @@ export default function CoachAnalytics({ startDate, endDate }) {
             <div className="relative mb-3 md:mb-6">
               <div className="w-16 h-16 md:w-32 md:h-32 rounded-full border-2 md:border-4 border-yellow-400 overflow-hidden shadow-xl shadow-yellow-500/30 ring-2 md:ring-4 ring-yellow-500/20">
                 {top3[0].avatar_url ? (
-                  <img src={top3[0].avatar_url} alt={top3[0].name} className="w-full h-full object-cover" />
+                  <img src={getAvatarUrl(top3[0].avatar_url)} alt={top3[0].name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-yellow-900/50 flex items-center justify-center text-2xl md:text-4xl font-bold text-yellow-400">
                     {top3[0].name[0]}
@@ -135,7 +136,7 @@ export default function CoachAnalytics({ startDate, endDate }) {
             <div className="relative mb-2 md:mb-4">
               <div className="w-12 h-12 md:w-24 md:h-24 rounded-full border-2 md:border-4 border-amber-700 overflow-hidden shadow-lg shadow-amber-900/40">
                 {top3[2].avatar_url ? (
-                  <img src={top3[2].avatar_url} alt={top3[2].name} className="w-full h-full object-cover" />
+                  <img src={getAvatarUrl(top3[2].avatar_url)} alt={top3[2].name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-amber-900/30 flex items-center justify-center text-lg md:text-2xl font-bold text-amber-700">
                     {top3[2].name[0]}
