@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { ru, enUS, ro } from 'date-fns/locale';
 import { messagesAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -73,15 +75,18 @@ export default function Chat() {
       }
       
       if (res) {
+        // Sort messages by created_at ascending
+        const rawData = res.data || [];
+        const sortedData = [...rawData].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        
         // Only update state if data actually changed to prevent unnecessary re-renders
         setMessages(prev => {
-            const newData = res.data || [];
-            if (JSON.stringify(prev) !== JSON.stringify(newData)) {
-                return newData;
+            if (JSON.stringify(prev) !== JSON.stringify(sortedData)) {
+                return sortedData;
             }
             return prev;
         });
-        if (!isBackground) setError(null); // Only clear error if explicit load? Actually clearing is fine.
+        if (!isBackground) setError(null);
       }
     } catch (err) {
       console.error('Failed to load messages:', err);
@@ -272,17 +277,29 @@ export default function Chat() {
   };
 
   const formatTime = (dateStr) => {
-    const localeMap = { ru: 'ru-RU', en: 'en-US', ro: 'ro-RO' };
-    const loc = localeMap[language] || 'ru-RU';
+    if (!dateStr) return '';
     try {
-      const date = new Date(dateStr);
-      const today = new Date();
-      const isToday = date.toDateString() === today.toDateString();
+      const date = parseISO(dateStr);
+      return format(date, 'HH:mm');
+    } catch {
+      return '';
+    }
+  };
+
+  const getMessageDateHeader = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = parseISO(dateStr);
+      const locale = language === 'ru' ? ru : (language === 'ro' ? ro : enUS);
       
-      if (isToday) {
-        return date.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (isToday(date)) {
+        return t('today') || 'Сегодня';
       }
-      return date.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+      if (isYesterday(date)) {
+        return t('yesterday') || 'Вчера';
+      }
+      
+      return format(date, 'EEEE, d MMMM yyyy', { locale });
     } catch {
       return '';
     }
@@ -501,18 +518,32 @@ export default function Chat() {
                 <span>{selectedChat.type === 'support' ? (t('write_first_question') || 'Напишите ваш первый вопрос') : t('no_messages_yet')}</span>
               </div>
             ) : (
-              messages.map(msg => {
+              messages.map((msg, index) => {
                 const own = isOwnMessage(msg);
                 const isAnnouncement = msg.chat_type?.toLowerCase() === 'announcement';
                 const isSupport = selectedChat.type === 'support';
                 const canDelete = own || isAdmin; // Admin can delete any message
                 const canEdit = own; // Only owner can edit
                 
+                // Date separator logic
+                const currentDate = msg.created_at ? format(parseISO(msg.created_at), 'yyyy-MM-dd') : null;
+                const prevDate = index > 0 && messages[index - 1].created_at 
+                  ? format(parseISO(messages[index - 1].created_at), 'yyyy-MM-dd') 
+                  : null;
+                const showDateSeparator = currentDate && currentDate !== prevDate;
+                
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 group ${own ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
+                  <div key={msg.id}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-6">
+                        <div className="bg-gray-200 text-gray-600 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm border border-gray-300">
+                          {getMessageDateHeader(msg.created_at)}
+                        </div>
+                      </div>
+                    )}
+                    <div
+                      className={`flex gap-3 group ${own ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
                     {/* Sender Avatar */}
                     <div className="flex-shrink-0 mt-1">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 shadow-sm ${
@@ -620,9 +651,10 @@ export default function Chat() {
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })
+          )}
             <div ref={messagesEndRef} />
           </div>
 

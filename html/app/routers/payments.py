@@ -1419,6 +1419,22 @@ async def update_payment(
     update_data = payment_in.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(payment, field, value)
+        
+    # Synchronize invoice items to match the new amount if it was changed
+    if "amount" in update_data and payment.amount != old_amount:
+        if len(payment.invoice_items) == 1:
+            item = payment.invoice_items[0]
+            item.unit_price = float(payment.amount)
+            item.total_price = float(payment.amount)
+            db.add(item)
+        elif len(payment.invoice_items) > 1:
+            # Add the difference to the first invoice item
+            diff = float(payment.amount) - float(old_amount)
+            item = payment.invoice_items[0]
+            item.total_price = float(item.total_price) + diff
+            if item.quantity and item.quantity > 0:
+                item.unit_price = float(item.total_price) / float(item.quantity)
+            db.add(item)
     
     # Recalculate balance if needed
     student = db.query(Student).filter(Student.id == payment.student_id).first()
@@ -1773,34 +1789,48 @@ async def invoice_group(
         )
     
     created_payments = []
+    updated_payments = []
     skipped_count = 0
     
     # OPTIMIZATION: Batch fetch existing payments to avoid N+1
-    period_start, period_end = get_month_range(invoice_data.payment_period)
+    invoice_period = invoice_data.payment_period.replace(day=1)
+    period_start, period_end = get_month_range(invoice_period)
     student_ids = [s.id for s in students]
     
-    # Check for existing payments of the same type in the period
-    existing_payments = db.query(Payment).join(InvoiceItem).filter(
+    requested_item_type = invoice_data.item_type or "membership"
+
+    existing_payments = db.query(Payment).options(joinedload(Payment.invoice_items)).filter(
         Payment.student_id.in_(student_ids),
         Payment.payment_period >= period_start,
         Payment.payment_period <= period_end,
         Payment.deleted_at.is_(None),
-        InvoiceItem.item_type == invoice_data.item_type
     ).all()
     
-    # Create a set of student_ids that already have a payment/invoice of this type
-    existing_student_ids = {p.student_id for p in existing_payments}
+    existing_by_student: dict[int, Payment] = {}
+    for p in existing_payments:
+        if p.invoice_items:
+            if not (len(p.invoice_items) == 1 and p.invoice_items[0].item_type == requested_item_type):
+                continue
+        else:
+            if requested_item_type != "membership":
+                continue
+
+        existing = existing_by_student.get(p.student_id)
+        if not existing:
+            existing_by_student[p.student_id] = p
+            continue
+        existing_status = str(existing.status).lower().strip() if existing.status else ""
+        p_status = str(p.status).lower().strip() if p.status else ""
+        if existing_status != "pending" and p_status == "pending":
+            existing_by_student[p.student_id] = p
+
+    existing_student_ids = set(existing_by_student.keys())
 
     print(f"DEBUG: Processing group {group_id}, students found: {len(students)}")
 
     try:
         for student in students:
             try:
-                # Проверяем, нет ли уже счета за этот период
-                if student.id in existing_student_ids:
-                    skipped_count += 1
-                    continue
-
                 # Определяем сумму: custom > individual_fee > group.monthly_fee
                 if invoice_data.custom_amount:
                     amount = invoice_data.custom_amount
@@ -1813,14 +1843,64 @@ async def invoice_group(
                     skipped_count += 1
                     continue
 
+                description = invoice_data.description or f"Счет за {get_month_name_ru(invoice_period.month)} {invoice_period.year}"
+
+                if student.id in existing_student_ids:
+                    existing_payment = existing_by_student.get(student.id)
+                    if not existing_payment:
+                        skipped_count += 1
+                        continue
+
+                    existing_status = str(existing_payment.status).lower().strip() if existing_payment.status else ""
+                    if existing_status != "pending":
+                        skipped_count += 1
+                        continue
+
+                    old_data = entity_to_dict(existing_payment)
+                    existing_payment.amount = amount
+                    existing_payment.description = description
+                    existing_payment.payment_period = invoice_period
+                    db.add(existing_payment)
+
+                    if existing_payment.invoice_items:
+                        for item in existing_payment.invoice_items:
+                            if item.item_type == (invoice_data.item_type or "membership"):
+                                item.description = description
+                                item.quantity = 1
+                                item.unit_price = amount
+                                item.total_price = amount
+                                item.service_date = invoice_period
+                                db.add(item)
+                    else:
+                        item = InvoiceItem(
+                            payment_id=existing_payment.id,
+                            item_type=invoice_data.item_type or "membership",
+                            description=description,
+                            quantity=1,
+                            unit_price=amount,
+                            total_price=amount,
+                            service_date=invoice_period
+                        )
+                        db.add(item)
+
+                    db.flush()
+                    recalculate_student_balance(db, student.id)
+
+                    try:
+                        log_update(db, "payment", existing_payment, old_data, user=current_user)
+                    except Exception as audit_e:
+                        print(f"Audit log error: {audit_e}")
+
+                    updated_payments.append(existing_payment)
+                    continue
+
                 # Создаем pending платеж
-                description = invoice_data.description or f"Счет за {get_month_name_ru(invoice_data.payment_period.month)} {invoice_data.payment_period.year}"
                 
                 payment = Payment(
                     student_id=student.id,
                     amount=amount,
                     payment_date=date.today(),
-                    payment_period=invoice_data.payment_period,
+                    payment_period=invoice_period,
                     method=None,  # Метод будет установлен при подтверждении
                     status="pending",
                     description=description
@@ -1836,7 +1916,7 @@ async def invoice_group(
                     quantity=1,
                     unit_price=amount,
                     total_price=amount,
-                    service_date=invoice_data.payment_period
+                    service_date=invoice_period
                 )
                 db.add(item)
                 
@@ -1897,6 +1977,8 @@ async def invoice_group(
         # Обновляем платежи для возврата
         for p in created_payments:
             db.refresh(p)
+        for p in updated_payments:
+            db.refresh(p)
             
     except Exception as e:
         print(f"CRITICAL ERROR in invoice_group: {e}")
@@ -1923,8 +2005,8 @@ async def invoice_group(
         success=True,
         created_count=len(created_payments),
         skipped_count=skipped_count,
-        message=f"Выставлено {len(created_payments)} счетов, пропущено {skipped_count}",
-        payments=created_payments
+        message=f"Выставлено {len(created_payments)} счетов, обновлено {len(updated_payments)}, пропущено {skipped_count}",
+        payments=[*created_payments, *updated_payments]
     )
 
 

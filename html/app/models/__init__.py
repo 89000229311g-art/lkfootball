@@ -38,3 +38,4 @@ from .funnel import FunnelStage
 from .hr_candidate import HRCandidate
 from .hr_funnel import HRFunnelStage
 from .task import Task
+from .user_activity import UserActivityLog

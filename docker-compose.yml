@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   #-----------------------------------------------------------------------------
@@ -100,6 +99,11 @@ services:
       - "traefik.http.routers.lksunnyfootball.rule=Host(`lk.sunnyfootball.com`)"
       - "traefik.http.routers.lksunnyfootball.entrypoints=websecure"
       - "traefik.http.routers.lksunnyfootball.tls.certresolver=myresolver"
+      # Редирект с HTTP на HTTPS
+      - "traefik.http.routers.lksunnyfootball-http.rule=Host(`lk.sunnyfootball.com`)"
+      - "traefik.http.routers.lksunnyfootball-http.entrypoints=web"
+      - "traefik.http.routers.lksunnyfootball-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       # Nginx внутри контейнера слушает порт 80 (согласно вашему Dockerfile)
       - "traefik.http.services.lksunnyfootball.loadbalancer.server.port=80"
       - "traefik.docker.network=web"

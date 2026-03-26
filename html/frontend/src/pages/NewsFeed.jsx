@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { ru, enUS, ro } from 'date-fns/locale';
 import { messagesAPI } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -62,23 +64,19 @@ export default function NewsFeed() {
   };
 
   const formatDate = (dateStr) => {
-    const localeMap = { ru: 'ru-RU', ro: 'ro-RO' };
-    const loc = localeMap[language] || 'ru-RU';
+    if (!dateStr) return '';
     try {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const date = parseISO(dateStr);
+      const locale = language === 'ru' ? ru : (language === 'ro' ? ro : enUS);
       
-      if (diffDays === 0) {
-        return t('today') + ', ' + date.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', hour12: false });
-      } else if (diffDays === 1) {
-        return t('yesterday');
-      } else if (diffDays < 7) {
-        return `${diffDays} ${t('days_ago')}`;
-      } else {
-        return date.toLocaleDateString(loc, { day: '2-digit', month: 'short', year: 'numeric' });
+      if (isToday(date)) {
+        return (t('today') || 'Сегодня') + ', ' + format(date, 'HH:mm');
       }
+      if (isYesterday(date)) {
+        return (t('yesterday') || 'Вчера') + ', ' + format(date, 'HH:mm');
+      }
+      
+      return format(date, 'EEEE, d MMMM yyyy, HH:mm', { locale });
     } catch {
       return '';
     }

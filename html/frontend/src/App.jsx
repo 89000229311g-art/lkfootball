@@ -39,7 +39,8 @@ const NewContractWizard = lazy(() => import('./pages/NewContractWizard'));
 function normalizeRole(role) {
   if (!role) return null;
   const r = role.toString().toLowerCase().trim();
-  if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin' || r === 'owner') return 'super_admin';
+  if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin') return 'super_admin';
+  if (r === 'owner' || r === 'userrole.owner') return 'owner';
   if (r === 'admin' || r === 'administrator' || r === 'userrole.admin') return 'admin';
   if (r === 'accountant' || r === 'userrole.accountant') return 'accountant';
   if (r === 'coach' || r === 'userrole.coach') return 'coach';
@@ -136,29 +137,29 @@ function App() {
             </RoleRoute>
           } />
           <Route path="coach-analytics" element={
-            <RoleRoute allowedRoles={['coach', 'super_admin', 'admin']}>
+            <RoleRoute allowedRoles={['coach', 'super_admin', 'owner', 'admin']}>
               <CoachAnalytics />
             </RoleRoute>
           } />
           <Route path="attendance" element={<Attendance />} />
           <Route path="payments" element={
-            <RoleRoute allowedRoles={['super_admin', 'admin', 'parent']}>
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'admin', 'parent']}>
               <Payments />
             </RoleRoute>
           } />
           <Route path="chat" element={<Chat />} />
           <Route path="users-management" element={
-            <RoleRoute allowedRoles={['super_admin', 'admin']}>
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'admin']}>
               <UsersManagement />
             </RoleRoute>
           } />
           <Route path="salary-management" element={
-            <RoleRoute allowedRoles={['super_admin', 'accountant']}>
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'accountant']}>
               <SalaryManagement />
             </RoleRoute>
           } />
           <Route path="my-salary" element={
-            <RoleRoute allowedRoles={['super_admin', 'admin', 'coach', 'accountant']}>
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'admin', 'coach', 'accountant']}>
               <MySalary />
             </RoleRoute>
           } />
@@ -189,7 +190,7 @@ function App() {
           } />
           <Route path="settings" element={<Settings />} />
           <Route path="students/new-contract" element={
-            <RoleRoute allowedRoles={['super_admin', 'admin']}>
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'admin']}>
               <NewContractWizard />
             </RoleRoute>
           } />

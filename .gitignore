@@ -1,0 +1,74 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+venv_new/
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+dist-ssr/
+*.local
+
+# Databases
+*.db
+*.sqlite3
+postgres_data/
+redis_data/
+
+# Logs
+*.log
+logs/
+
+# OS/IDEs
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.docker-cache/
+
+# Project specific legay/temp
+backend.log
+backend_complete.log
+backend_final.log
+backend_new.log
+server.log
+coach_token.txt
+parent_token.txt
+
+# Backups & Uploads (no binary data in repo)
+backups/
+html/uploads/
+html/venv/
+html/.venv/

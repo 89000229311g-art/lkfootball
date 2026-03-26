@@ -144,7 +144,10 @@ export default function Tasks() {
     try {
       setSaving(true);
       const payload = {
-        ...formData,
+        title: formData.title,
+        description: formData.description || null,
+        status: formData.status || 'todo',
+        priority: formData.priority || 'medium',
         assignee_id: formData.assignee_id ? parseInt(formData.assignee_id) : null,
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
       };

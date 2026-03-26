@@ -3,7 +3,8 @@ Audit Log model for tracking all changes in the system.
 Provides version history and undo functionality.
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, ARRAY
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
@@ -36,7 +37,7 @@ class AuditLog(Base):
     # Data snapshots
     old_data = Column(JSON, nullable=True)  # State before change (null for create)
     new_data = Column(JSON, nullable=True)  # State after change (null for delete)
-    changed_fields = Column(ARRAY(String), nullable=True)  # List of fields that changed
+    changed_fields = Column(PG_ARRAY(String).with_variant(JSON(), "sqlite"), nullable=True)  # List of fields that changed
     
     # Who made the change
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

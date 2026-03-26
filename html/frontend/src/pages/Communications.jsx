@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
+import { ru, enUS, ro } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../api/client';
@@ -276,10 +278,35 @@ const MessageInput = ({ onSend, placeholder }) => {
 };
 
 const DirectChatModal = ({ recipient, isOpen, onClose, currentUser }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+      return format(date, 'HH:mm');
+    } catch {
+      return '';
+    }
+  };
+
+  const getMessageDateHeader = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+      const locale = language === 'ru' ? ru : (language === 'ro' ? ro : enUS);
+      
+      if (isToday(date)) return t('today') || 'Сегодня';
+      if (isYesterday(date)) return t('yesterday') || 'Вчера';
+      
+      return format(date, 'EEEE, d MMMM yyyy', { locale });
+    } catch {
+      return '';
+    }
+  };
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -349,16 +376,33 @@ const DirectChatModal = ({ recipient, isOpen, onClose, currentUser }) => {
             <div className="flex items-center justify-center h-full text-gray-500">{t('no_messages')}</div>
           ) : (
             <div style={{ marginTop: 'auto' }}>
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'} mb-3`}>
-                  <div className={`max-w-[80%] px-4 py-2 rounded-lg ${msg.sender_id === currentUser?.id ? 'bg-blue-600 text-white' : 'bg-[#2D323B] text-gray-200 border border-gray-700'}`}>
-                    <div>{msg.content}</div>
-                    <div className="text-xs opacity-50 mt-1 text-right">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', hour12: false })}
+              {messages.map((msg, index) => {
+                const currentDate = msg.created_at ? format(parseISO(msg.created_at), 'yyyy-MM-dd') : null;
+                const prevDate = index > 0 && messages[index - 1].created_at 
+                  ? format(parseISO(messages[index - 1].created_at), 'yyyy-MM-dd') 
+                  : null;
+                const showDateSeparator = currentDate && currentDate !== prevDate;
+                
+                return (
+                  <div key={msg.id}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-4">
+                        <div className="bg-[#2D323B] text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-gray-700">
+                          {getMessageDateHeader(msg.created_at)}
+                        </div>
+                      </div>
+                    )}
+                    <div className={`flex ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'} mb-3`}>
+                      <div className={`max-w-[80%] px-4 py-2 rounded-lg ${msg.sender_id === currentUser?.id ? 'bg-blue-600 text-white' : 'bg-[#2D323B] text-gray-200 border border-gray-700'}`}>
+                        <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                        <div className="text-xs opacity-50 mt-1 text-right">
+                          {formatTime(msg.created_at)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -630,11 +674,37 @@ const BulkSMSSection = ({ students, groups, debtors, api, t }) => {
 
 export default function Communications() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   useEffect(() => {
     console.log("DEBUG: Communications component mounted - Version 2.2");
   }, []);
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+      return format(date, 'HH:mm');
+    } catch {
+      return '';
+    }
+  };
+
+  const getMessageDateHeader = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+      const locale = language === 'ru' ? ru : (language === 'ro' ? ro : enUS);
+      
+      if (isToday(date)) return t('today') || 'Сегодня';
+      if (isYesterday(date)) return t('yesterday') || 'Вчера';
+      
+      return format(date, 'EEEE, d MMMM yyyy', { locale });
+    } catch {
+      return '';
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('feed'); // feed, teamChats, mailings, support
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -938,7 +1008,9 @@ export default function Communications() {
   const loadChatMessages = useCallback(async (groupId) => {
     try {
       const res = await api.messages.getGroupMessages(groupId);
-      setChatMessages(res.data.data || res.data || []);
+      const rawMessages = res.data.data || res.data || [];
+      const sorted = [...rawMessages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setChatMessages(sorted);
       
       // Mark as read when loading messages
       try {
@@ -1039,7 +1111,8 @@ export default function Communications() {
         const messagesRes = await api.messages.getSupport();
         const allMessages = messagesRes.data || [];
         const supportMsgs = allMessages.filter(m => m.chat_type?.toLowerCase() !== 'system');
-        setSupportMessages(supportMsgs);
+        const sorted = [...supportMsgs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setSupportMessages(sorted);
         const usersRes = await api.auth.getUsers();
         setUsers((usersRes.data.data || usersRes.data || []).filter(
           u => u.id !== user?.id && ['super_admin', 'admin', 'owner'].includes(u.role?.toLowerCase())
@@ -1089,7 +1162,9 @@ export default function Communications() {
   const loadSupportMessages = useCallback(async (userId) => {
     try {
       const res = await api.messages.getSupportChatWith(userId);
-      setSupportMessages(res.data || []);
+      const rawMsgs = res.data || [];
+      const sorted = [...rawMsgs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setSupportMessages(sorted);
       setTimeout(scrollToBottom, 100);
       await loadUnreadCounts();
     } catch (err) {
@@ -2186,50 +2261,67 @@ export default function Communications() {
             
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#1C2127]" style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ marginTop: 'auto' }}>
-                {chatMessages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
-                    <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
-                      {msg.sender_id !== user?.id && (
-                        <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
-                          {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+                {chatMessages.map((msg, index) => {
+                  const currentDate = msg.created_at ? format(parseISO(msg.created_at), 'yyyy-MM-dd') : null;
+                  const prevDate = index > 0 && chatMessages[index - 1].created_at 
+                    ? format(parseISO(chatMessages[index - 1].created_at), 'yyyy-MM-dd') 
+                    : null;
+                  const showDateSeparator = currentDate && currentDate !== prevDate;
+                  
+                  return (
+                    <div key={msg.id}>
+                      {showDateSeparator && (
+                        <div className="flex justify-center my-6">
+                          <div className="bg-[#2D323B] text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-gray-700 shadow-sm">
+                            {getMessageDateHeader(msg.created_at)}
+                          </div>
                         </div>
                       )}
-                      
-                      <div className="flex justify-between items-start gap-2 group">
-                        <div className="break-words">{msg.content}</div>
-                        {(msg.sender_id === user?.id || isAdmin) && (
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); }}
-                                className="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-white/50 hover:text-white bg-black/20 hover:bg-red-500/50 rounded px-1.5 py-0.5"
-                                title={t('delete')}
-                            >
-                                ✕
-                            </button>
-                        )}
-                      </div>
-                      
-                      {/* Poll in message */}
-                      {msg.poll && (
-                        <div className="mt-2 p-2 bg-[#1C2127] rounded border border-gray-700">
-                          <div className="font-medium mb-2 text-white">📊 {msg.poll.question}</div>
-                          {msg.poll.options.map((opt, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleVote(msg.poll.id, idx)}
-                              className={`w-full text-left p-2 mb-1 rounded transition ${msg.poll.user_voted === idx ? 'bg-green-600 text-white' : 'bg-[#2D323B] text-gray-300 hover:bg-gray-700'}`}
-                            >
-                              {opt} {msg.poll.votes?.[idx]?.count > 0 && `(${msg.poll.votes[idx].count})`}
-                            </button>
-                          ))}
+                      <div className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
+                        <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
+                          {msg.sender_id !== user?.id && (
+                            <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
+                              {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-start gap-2 group">
+                            <div className="break-words">{msg.content}</div>
+                            {(msg.sender_id === user?.id || isAdmin) && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); }}
+                                    className="text-xs opacity-0 group-hover:opacity-100 transition-opacity text-white/50 hover:text-white bg-black/20 hover:bg-red-500/50 rounded px-1.5 py-0.5"
+                                    title={t('delete')}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                          </div>
+                          
+                          {/* Poll in message */}
+                          {msg.poll && (
+                            <div className="mt-2 p-2 bg-[#1C2127] rounded border border-gray-700">
+                              <div className="font-medium mb-2 text-white">📊 {msg.poll.question}</div>
+                              {msg.poll.options.map((opt, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleVote(msg.poll.id, idx)}
+                                  className={`w-full text-left p-2 mb-1 rounded transition ${msg.poll.user_voted === idx ? 'bg-green-600 text-white' : 'bg-[#2D323B] text-gray-300 hover:bg-gray-700'}`}
+                                >
+                                  {opt} {msg.poll.votes?.[idx]?.count > 0 && `(${msg.poll.votes[idx].count})`}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="text-xs opacity-50 mt-1">
+                            {formatTime(msg.created_at)}
+                          </div>
                         </div>
-                      )}
-                      
-                      <div className="text-xs opacity-50 mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', hour12: false })}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             </div>
@@ -2316,21 +2408,38 @@ export default function Communications() {
                 
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#1C2127]" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginTop: 'auto' }}>
-                    {supportMessages.map(msg => (
-                      <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
-                        <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
-                          {msg.sender_id !== user?.id && (
-                            <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
-                              {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+                    {supportMessages.map((msg, index) => {
+                      const currentDate = msg.created_at ? format(parseISO(msg.created_at), 'yyyy-MM-dd') : null;
+                      const prevDate = index > 0 && supportMessages[index - 1].created_at 
+                        ? format(parseISO(supportMessages[index - 1].created_at), 'yyyy-MM-dd') 
+                        : null;
+                      const showDateSeparator = currentDate && currentDate !== prevDate;
+                      
+                      return (
+                        <div key={msg.id}>
+                          {showDateSeparator && (
+                            <div className="flex justify-center my-6">
+                              <div className="bg-[#2D323B] text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-gray-700 shadow-sm">
+                                {getMessageDateHeader(msg.created_at)}
+                              </div>
                             </div>
                           )}
-                          <div className="break-words">{msg.content}</div>
-                          <div className="text-xs opacity-50 mt-1">
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', hour12: false })}
+                          <div className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
+                            <div className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
+                              {msg.sender_id !== user?.id && (
+                                <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
+                                  {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+                                </div>
+                              )}
+                              <div className="break-words">{msg.content}</div>
+                              <div className="text-xs opacity-50 mt-1">
+                                {formatTime(msg.created_at)}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </div>
                 </div>
@@ -2366,21 +2475,38 @@ export default function Communications() {
                 💬 {t('start_support_dialog')}
               </div>
             ) : (
-              supportMessages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
-                  <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
-                    {msg.sender_id !== user?.id && (
-                      <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
-                        {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+              supportMessages.map((msg, index) => {
+                const currentDate = msg.created_at ? format(parseISO(msg.created_at), 'yyyy-MM-dd') : null;
+                const prevDate = index > 0 && supportMessages[index - 1].created_at 
+                  ? format(parseISO(supportMessages[index - 1].created_at), 'yyyy-MM-dd') 
+                  : null;
+                const showDateSeparator = currentDate && currentDate !== prevDate;
+                
+                return (
+                  <div key={msg.id}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-6">
+                        <div className="bg-[#2D323B] text-gray-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-gray-700 shadow-sm">
+                          {getMessageDateHeader(msg.created_at)}
+                        </div>
                       </div>
                     )}
-                    <div>{msg.content}</div>
-                    <div className="text-xs opacity-50 mt-1">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit', hour12: false })}
+                    <div className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'} mb-3`}>
+                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.sender_id === user?.id ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-[#2D323B] text-gray-200 border border-gray-700 shadow-lg'}`}>
+                        {msg.sender_id !== user?.id && (
+                          <div className={`text-xs font-medium mb-1 ${getRoleColor(msg.sender_role)}`}>
+                            {getRoleDisplay(msg.sender_role)} {msg.sender_name}
+                          </div>
+                        )}
+                        <div>{msg.content}</div>
+                        <div className="text-xs opacity-50 mt-1">
+                          {formatTime(msg.created_at)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>

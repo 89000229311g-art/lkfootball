@@ -326,8 +326,10 @@ export default function Settings() {
   };
 
   const roleKeys = {
-    super_admin: 'role_owner',
+    owner: 'role_finance_director',
+    super_admin: 'role_sport_director',
     admin: 'role_admin',
+    accountant: 'role_accountant',
     coach: 'role_coach',
     parent: 'role_parent',
   };

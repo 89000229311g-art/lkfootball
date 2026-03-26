@@ -32,6 +32,9 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
+        entryFileNames: `assets/[name].[hash].js`,
+        chunkFileNames: `assets/[name].[hash].js`,
+        assetFileNames: `assets/[name].[hash].[ext]`,
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           charts: ['chart.js', 'react-chartjs-2', 'recharts'],

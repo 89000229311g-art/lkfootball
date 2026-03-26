@@ -137,6 +137,7 @@ async def login(
         db.add(activity)
         db.commit()
     except Exception as e:
+        db.rollback()
         print(f"Failed to log activity: {e}")
         # Don't block login
     
@@ -217,8 +218,8 @@ async def update_me(
     """
     user_role = current_user.role.lower() if current_user.role else ""
     
-    # Только Руководитель может редактировать свой профиль
-    if user_role != "super_admin":
+    # Оба основателя (super_admin и owner) могут редактировать свой профиль
+    if user_role not in ["super_admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="❌ Вы не можете редактировать свой профиль. Обратитесь к Администратору или Руководителю."
@@ -515,13 +516,13 @@ async def update_user(
     
     target_user_role = user.role.lower() if user.role else ""
     
-    # 🏆 РУКОВОДИТЕЛИ (Владелец и Спортивный директор) могут редактировать всех
+    # 🏆 ДИРЕКТОРА (Владелец и Спортивный директор) могут редактировать всех,
+    # но НЕ могут редактировать профиль друг друга (оба основателя защищены симметрично)
     if current_user_role in ["super_admin", "owner"]:
-        # Спортивный директор (super_admin) не может редактировать Финансового директора (owner)
-        if current_user_role == "super_admin" and target_user_role == "owner":
-             raise HTTPException(
+        if current_user_role != target_user_role and target_user_role in ["super_admin", "owner"]:
+            raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="❌ Спортивный директор не может редактировать профиль Финансового директора"
+                detail="❌ Директор не может редактировать профиль другого Директора"
             )
         pass  # Продолжаем выполнение
     
@@ -690,16 +691,12 @@ async def delete_user(
     target_user_role = user.role.lower() if user.role else ""
     user_name = user.full_name
     
-    # 🏆 ВЛАДЕЛЕЦ (Финансовый директор) - Полные права (удаляет всех кроме себя)
-    if current_user_role == "owner":
-        pass # Может удалить всех
-        
-    # 🏆 СПОРТИВНЫЙ ДИРЕКТОР (Super Admin) - Не может удалить Владельца
-    elif current_user_role == "super_admin":
-        if target_user_role == "owner":
+    # 🏆 ДИРЕКТОРА (owner/super_admin) - полные права, но НЕ могут удалить друг друга
+    if current_user_role in ["owner", "super_admin"]:
+        if current_user_role != target_user_role and target_user_role in ["owner", "super_admin"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="❌ Спортивный директор не может удалить Финансового директора"
+                detail="❌ Нельзя удалить другого Директора"
             )
             
     # 🛡️ АДМИНИСТРАТОР - ограничения
@@ -922,8 +919,8 @@ async def admin_reset_password(
     """
     current_role = current_user.role.lower() if current_user.role else ""
     
-    # Только руководитель и администратор могут менять пароли
-    if current_role not in ["super_admin", "admin"]:
+    # Руководители (super_admin, owner) и администраторы могут менять пароли
+    if current_role not in ["super_admin", "owner", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="❌ У вас нет прав на изменение паролей. Доступно только для Руководителей и Администраторов."
@@ -953,42 +950,24 @@ async def admin_reset_password(
     
     target_role = target_user.role.lower() if target_user.role else ""
     
-    # 🏆 РУКОВОДИТЕЛЬ (super_admin) - может менять пароль ВСЕМ
-    if current_role == "super_admin":
-        # Руководитель может менять пароль администраторам, тренерам, родителям
-        if target_role in ["admin", "coach", "parent"]:
-            target_user.password_hash = get_password_hash(new_password)
-            # 🔐 Сохраняем учетные данные
-            save_user_credential(
-                db=db,
-                user_id=user_id,
-                login=target_user.phone,
-                password=new_password,
-                created_by_id=current_user.id,
-                note=f"Пароль изменен Руководителем: {current_user.full_name}"
-            )
-            return {
-                "message": f"✅ Пароль успешно изменен для {target_user.full_name} ({target_role})",
-                "user_id": user_id,
-                "role": target_role
-            }
-        elif target_role == "super_admin":
-            # Руководитель может менять пароль другим руководителям
-            target_user.password_hash = get_password_hash(new_password)
-            # 🔐 Сохраняем учетные данные
-            save_user_credential(
-                db=db,
-                user_id=user_id,
-                login=target_user.phone,
-                password=new_password,
-                created_by_id=current_user.id,
-                note=f"Пароль изменен Руководителем: {current_user.full_name}"
-            )
-            return {
-                "message": f"✅ Пароль успешно изменен для Руководителя {target_user.full_name}",
-                "user_id": user_id,
-                "role": target_role
-            }
+    # 🏆 ОСНОВАТЕЛИ (super_admin, owner) - могут менять пароль ВСЕМ
+    if current_role in ["super_admin", "owner"]:
+        target_user.password_hash = get_password_hash(new_password)
+        # 🔐 Сохраняем учетные данные
+        save_user_credential(
+            db=db,
+            user_id=user_id,
+            login=target_user.phone,
+            password=new_password,
+            created_by_id=current_user.id,
+            note=f"Пароль изменен Руководителем: {current_user.full_name}"
+        )
+        db.commit()
+        return {
+            "message": f"✅ Пароль успешно изменен для {target_user.full_name} ({target_role})",
+            "user_id": user_id,
+            "role": target_role
+        }
     
     # 🛡️ АДМИНИСТРАТОР (admin) - может менять пароль только тренерам и родителям
     elif current_role == "admin":
@@ -1057,7 +1036,7 @@ async def create_user(
     from app.models.group import Group
     
     user_role = current_user.role.lower() if current_user.role else ""
-    if user_role not in ["super_admin", "admin"]:
+    if user_role not in ["super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="❌ У вас нет прав на создание пользователей"

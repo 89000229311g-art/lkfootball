@@ -946,6 +946,8 @@ const translations = {
     profile_phone: 'Телефон',
     profile_role: 'Роль',
     profile_password_view: 'Посмотреть пароль',
+    your_password: 'Ваш пароль',
+    password_view_only_hint: 'Пароль доступен только для просмотра',
     
     // Coach Attendance
     attendance_mark_days: 'Отметка по дням',

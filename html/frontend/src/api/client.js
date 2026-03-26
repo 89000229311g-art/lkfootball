@@ -39,6 +39,13 @@ apiClient.interceptors.response.use(
     const isAuthMeEndpoint = url.includes('/auth/me');
 
     if (error.response?.status === 401 && !isHistoryEndpoint) {
+      console.log('401 error detected at:', url);
+      // Skip logout if it's a known non-critical endpoint
+      if (url.includes('/tasks')) {
+        console.log('Suppressing auto-logout for /tasks 401');
+        return Promise.reject(error);
+      }
+      
       try {
         sessionStorage.setItem('auth_notice', 'Сессия истекла. Пожалуйста, войдите снова.');
       } catch (e) { void e; }
@@ -144,6 +151,7 @@ export const groupsAPI = {
   update: (id, data) => apiClient.put(`/groups/${id}`, data),
   delete: (id) => apiClient.delete(`/groups/${id}`),
   getStudents: (id) => apiClient.get(`/groups/${id}/students`),
+  transferStudents: (data) => apiClient.post('/groups/transfer-students', data),
 };
 
 export const eventsAPI = {
@@ -530,7 +538,7 @@ export const birthdaysAPI = {
 
 export const tasksAPI = {
   getAll: () => apiClient.get('/tasks/'),
-  create: (data) => apiClient.post('/tasks', data),
+  create: (data) => apiClient.post('/tasks/', data),
   update: (id, data) => apiClient.put(`/tasks/${id}`, data),
   delete: (id) => apiClient.delete(`/tasks/${id}`),
   getAnalytics: (days = 30) => apiClient.get(`/tasks/analytics?days=${days}`),

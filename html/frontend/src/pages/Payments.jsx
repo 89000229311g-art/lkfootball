@@ -2631,9 +2631,9 @@ export default function Payments() {
 
       {/* Invoice Group Modal */}
       {showInvoiceModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 landscape:p-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowInvoiceModal(false)}>
-          <div className="bg-[#1C1E24] border border-white/10 rounded-2xl landscape:rounded-none w-full max-w-2xl landscape:max-w-full max-h-[90dvh] landscape:max-h-full landscape:h-full flex flex-col overflow-hidden animate-fade-up landscape:mt-0" onClick={e => e.stopPropagation()}>
-            <div className="p-4 md:p-6 border-b border-white/10 shrink-0 landscape:py-3">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowInvoiceModal(false)}>
+          <div className="bg-[#1C1E24] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden animate-fade-up" onClick={e => e.stopPropagation()}>
+            <div className="p-4 md:p-6 border-b border-white/10 shrink-0">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg md:text-xl font-bold text-white leading-tight">{t('invoice_group_title') || 'Выставить счет группе'}</h3>
                 <button onClick={() => setShowInvoiceModal(false)} className="text-white/40 hover:text-white shrink-0 ml-2">
@@ -2643,7 +2643,7 @@ export default function Payments() {
               <p className="text-white/50 text-sm">{t('invoice_group_hint')}</p>
             </div>
             
-            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar landscape:p-4 pb-24">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar pb-24">
               {invoiceError && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-sm text-red-400">
                   <AlertCircle className="w-5 h-5 shrink-0" />
@@ -2768,9 +2768,9 @@ export default function Payments() {
 
       {/* Invoice Individual Modal */}
       {showIndividualModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 landscape:p-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowIndividualModal(false)}>
-          <div className="bg-[#1C1E24] border border-white/10 rounded-2xl landscape:rounded-none w-full max-w-2xl landscape:max-w-full max-h-[90dvh] landscape:max-h-full landscape:h-full flex flex-col animate-fade-up shadow-2xl overflow-hidden landscape:mt-0" onClick={e => e.stopPropagation()}>
-            <div className="p-4 md:p-6 border-b border-white/10 shrink-0 landscape:py-3">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowIndividualModal(false)}>
+          <div className="bg-[#1C1E24] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90dvh] flex flex-col animate-fade-up shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 md:p-6 border-b border-white/10 shrink-0">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg md:text-xl font-bold text-white leading-tight">{t('invoice_individual_title') || 'Выставить счет ученику'}</h3>
                 <button onClick={() => setShowIndividualModal(false)} className="text-white/40 hover:text-white shrink-0 ml-2">
@@ -2780,7 +2780,7 @@ export default function Payments() {
               <p className="text-white/50 text-sm">{t('invoice_individual_hint')}</p>
             </div>
             
-            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar landscape:p-4">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
               {individualError && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-sm text-red-400">
                   <AlertCircle className="w-5 h-5 shrink-0" />

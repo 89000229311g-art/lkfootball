@@ -10,7 +10,8 @@ import { messagesAPI } from '../api/client';
 function normalizeRole(role) {
   if (!role) return null;
   const r = role.toString().toLowerCase().trim();
-  if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin' || r === 'owner') return 'super_admin';
+  if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin') return 'super_admin';
+  if (r === 'owner' || r === 'userrole.owner') return 'owner';
   if (r === 'admin' || r === 'administrator' || r === 'userrole.admin') return 'admin';
   if (r === 'accountant' || r === 'userrole.accountant') return 'accountant';
   if (r === 'coach' || r === 'userrole.coach') return 'coach';
