@@ -378,13 +378,16 @@ async def get_coach_performance(
 
     logger.info(f"Fetching coach performance from {start_date} to {end_date}")
     
-    # Get all active coaches
-    coaches = db.query(User).filter(
-        func.lower(User.role) == "coach",
-        User.is_active == True
-    ).all()
-    
-    logger.info(f"Found {len(coaches)} active coaches for performance analytics")
+    try:
+        # Get all active coaches
+        coaches = db.query(User).filter(
+            func.lower(User.role) == "coach",
+            User.is_active == True
+        ).all()
+        logger.info(f"Found {len(coaches)} active coaches")
+    except Exception as e:
+        logger.error(f"Database error while fetching coaches: {e}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     performance_data = []
     

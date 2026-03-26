@@ -141,21 +141,19 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
 app.add_middleware(RequestTimingMiddleware)
 
 # CORS Configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# Try to get origins from BACKEND_CORS_ORIGINS (standard in this project's docker-compose)
+# or ALLOWED_ORIGINS (fallback)
+raw_origins = os.getenv("BACKEND_CORS_ORIGINS") or os.getenv("ALLOWED_ORIGINS")
 
-if os.getenv("ENVIRONMENT") == "production":
-    # Production: restrict CORS to specific domains
-    cors_origins = [
-        "https://your-domain.com",
-        "https://app.your-domain.com",
-        "https://admin.your-domain.com",
-    ]
-    # Override with env variable if set
-    if ALLOWED_ORIGINS != ["*"]:
-        cors_origins = ALLOWED_ORIGINS
+if raw_origins and raw_origins != "*":
+    cors_origins = [origin.strip() for origin in raw_origins.split(",")]
+    # Ensure common variants are included
+    if "https://lk.sunnyfootball.com" not in cors_origins:
+        cors_origins.append("https://lk.sunnyfootball.com")
 else:
-    # Development: allow all origins
     cors_origins = ["*"]
+
+logger.info(f"CORS origins configured: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
