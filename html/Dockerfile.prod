@@ -68,7 +68,7 @@ fi
 
 # Инициализация БД: создание таблиц + enum-значений + суперпользователя
 echo "[3/3] Initializing database (tables + superuser)..."
-python init_db.py
+python -m app.initial_data
 
 echo "=========================================="
 echo "  Starting Gunicorn server..."
