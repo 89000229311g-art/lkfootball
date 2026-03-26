@@ -1,9 +1,9 @@
 // Sunny Football Academy - Service Worker
 // Provides offline support and caching
 
-const CACHE_NAME = 'sunny-academy-v1';
-const STATIC_CACHE = 'static-v1';
-const API_CACHE = 'api-v1';
+const CACHE_NAME = 'sunny-academy-v2';
+const STATIC_CACHE = 'static-v2';
+const API_CACHE = 'api-v2';
 
 // Files to cache immediately
 const STATIC_ASSETS = [

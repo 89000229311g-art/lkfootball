@@ -29,10 +29,37 @@
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
               console.log('ServiceWorker registered: ', registration);
+              
+              // Check for updates periodically
+              setInterval(() => {
+                registration.update();
+              }, 1000 * 60 * 60); // Check every hour
+              
+              registration.onupdatefound = () => {
+                const installingWorker = registration.installing;
+                if (installingWorker) {
+                  installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content is available, skip waiting is handled in sw.js
+                      // Just reload the page to get latest assets
+                      console.log('New content available, reloading...');
+                      window.location.reload();
+                    }
+                  };
+                }
+              };
             })
             .catch(err => {
               console.log('ServiceWorker registration failed: ', err);
             });
+        });
+
+        // Ensure refresh only happens once
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
         });
       }
     </script>
