@@ -1,0 +1,49 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: html/frontend/package-lock.json
+
+      - name: Build Frontend
+        run: |
+          cd html/frontend
+          npm install
+          npm run build
+
+      - name: Copy files to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./*"
+          target: "/root/lksunnyfootball"
+          rm: false
+          # Исключаем лишние папки, чтобы не затирать логи и загрузки на сервере
+          exclude: "html/frontend/node_modules,html/venv,html/logs,html/uploads,postgres_data,nginx_logs,backups"
+
+      - name: Restart Services
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/lksunnyfootball
+            # Исправляем права на папки (если нужно)
+            chown -R 999:999 html/logs html/uploads
+            # Перезапускаем контейнеры
+            docker compose up -d --build

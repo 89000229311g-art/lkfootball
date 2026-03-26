@@ -12,7 +12,7 @@ from ..models.student_guardian import StudentGuardian
 router = APIRouter()
 
 # Directory for storing avatars
-AVATAR_DIR = Path("static/avatars")
+AVATAR_DIR = Path("uploads/avatars")
 AVATAR_DIR.mkdir(parents=True, exist_ok=True)
 
 # Directory for general media (photos/videos)

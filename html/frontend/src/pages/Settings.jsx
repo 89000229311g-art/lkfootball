@@ -807,13 +807,22 @@ export default function Settings() {
               
               <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                 <div className="text-sm text-white/50 mb-1">{t('password') || 'Пароль'}</div>
-                <div className="text-lg font-mono text-white">{myPassword.password}</div>
+                <div className={`text-lg font-mono ${myPassword.is_legacy ? 'text-amber-400 text-sm italic' : 'text-white'}`}>
+                  {myPassword.password}
+                </div>
               </div>
               
-              <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-sm flex items-start gap-2">
-                <span>⚠️</span>
-                <span>{t('password_view_only_hint') || 'Для изменения пароля обратитесь к руководителю'}</span>
-              </div>
+              {myPassword.is_legacy ? (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-sm flex items-start gap-2">
+                  <span>⚠️</span>
+                  <span>{t('password_legacy_hint') || 'Этот аккаунт был создан до введения системы просмотра паролей. Чтобы активировать просмотр, просто установите новый пароль (можно тот же самый).'}</span>
+                </div>
+              ) : (
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-sm flex items-start gap-2">
+                  <span>⚠️</span>
+                  <span>{t('password_view_only_hint') || 'Для изменения пароля обратитесь к руководителю'}</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-6">

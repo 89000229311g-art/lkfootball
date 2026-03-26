@@ -31,7 +31,7 @@ const AvatarUpload = ({ currentAvatar, onUpload, onDelete, size = 'large' }) => 
 
     // Validate HEIC (Apple format) - often problematic for direct preview/upload without conversion
     if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
-        alert(t('heic_not_supported') || 'Формат HEIC не поддерживается. Пожалуйста, используйте JPG или PNG.');
+        alert(t('heic_not_supported') || 'Формат HEIC (Apple) пока не поддерживается напрямую. Пожалуйста, сделайте скриншот фото или измените настройки камеры на "Наиболее совместимый" (JPEG), чтобы загрузить фото прямо с телефона.');
         return;
     }
 

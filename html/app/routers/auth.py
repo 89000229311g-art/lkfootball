@@ -344,21 +344,23 @@ async def get_my_password(
     🔐 Получить свой пароль.
     
     Любой авторизованный пользователь может просмотреть свой пароль.
-    Пароль хранится в зашифрованном виде и расшифровывается при запросе.
+    Если пароль не был сохранён (старый аккаунт), возвращается сообщение с просьбой сбросить пароль.
     """
     credential = db.query(UserCredential).filter(
         UserCredential.user_id == current_user.id
     ).first()
     
     if not credential:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Учетные данные не найдены"
-        )
+        return {
+            "login": current_user.phone,
+            "password": "Пароль не сохранён (старый аккаунт). Пожалуйста, измените пароль в настройках, чтобы он стал доступен для просмотра.",
+            "is_legacy": True
+        }
     
     return {
         "login": credential.login,
-        "password": credential.password_plain
+        "password": credential.password_plain,
+        "is_legacy": False
     }
 
 

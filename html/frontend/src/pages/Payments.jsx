@@ -2643,7 +2643,7 @@ export default function Payments() {
               <p className="text-white/50 text-sm">{t('invoice_group_hint')}</p>
             </div>
             
-            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar pb-24">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
               {invoiceError && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-sm text-red-400">
                   <AlertCircle className="w-5 h-5 shrink-0" />
@@ -2745,22 +2745,26 @@ export default function Payments() {
                   </p>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowInvoiceModal(false)}
-                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium order-2 sm:order-1"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors font-bold order-1 sm:order-2"
-                  >
-                    {t('create_invoices_btn') || 'Выставить счета'}
-                  </button>
-                </div>
               </form>
+            </div>
+            
+            <div className="p-4 md:p-6 border-t border-white/10 bg-[#1C1E24] sticky bottom-0 z-10 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(false)}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium order-2 sm:order-1"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  form="invoice-group-form"
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors font-bold order-1 sm:order-2"
+                >
+                  {t('create_invoices_btn') || 'Выставить счета'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2787,7 +2791,7 @@ export default function Payments() {
                   <span>{individualError}</span>
                 </div>
               )}
-              <form id="invoiceForm" onSubmit={handleInvoiceStudent} className="space-y-4 pb-24">
+              <form id="individual-invoice-form" onSubmit={handleInvoiceStudent} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-2">{t('group_label')}</label>
                    <select
@@ -2935,34 +2939,38 @@ export default function Payments() {
                 />
               </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowIndividualModal(false)}
-                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium order-2 sm:order-1"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={processingIndividual}
-                    className={`flex-1 px-4 py-3 rounded-xl transition-colors font-bold order-1 sm:order-2 ${
-                      processingIndividual 
-                        ? 'bg-purple-500/50 text-white/50 cursor-not-allowed' 
-                        : 'bg-purple-500 hover:bg-purple-600 text-white'
-                    }`}
-                  >
-                    {processingIndividual ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
-                        {t('processing') || 'Обработка...'}
-                      </>
-                    ) : (
-                      t('create_invoice_btn') || 'Выставить счет'
-                    )}
-                  </button>
-                </div>
               </form>
+            </div>
+            
+            <div className="p-4 md:p-6 border-t border-white/10 bg-[#1C1E24] sticky bottom-0 z-10 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowIndividualModal(false)}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium order-2 sm:order-1"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  form="individual-invoice-form"
+                  type="submit"
+                  disabled={processingIndividual}
+                  className={`flex-1 px-4 py-3 rounded-xl transition-colors font-bold order-1 sm:order-2 ${
+                    processingIndividual 
+                      ? 'bg-purple-500/50 text-white/50 cursor-not-allowed' 
+                      : 'bg-purple-500 hover:bg-purple-600 text-white'
+                  }`}
+                >
+                  {processingIndividual ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                      {t('processing') || 'Обработка...'}
+                    </>
+                  ) : (
+                    t('create_invoice_btn') || 'Выставить счет'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
