@@ -54,8 +54,9 @@ const AvatarUpload = ({ currentAvatar, onUpload, onDelete, size = 'large' }) => 
       await onUpload(file);
     } catch (error) {
       console.error('Upload error details:', error);
+      const status = error.response?.status;
       const serverMsg = error.response?.data?.detail;
-      const errorMsg = serverMsg || error.message || 'Ошибка сервера';
+      const errorMsg = serverMsg || error.message || (status ? `Сбой (${status})` : 'Ошибка сервера');
       
       alert(`${t('upload_failed') || 'Ошибка загрузки'}: ${errorMsg}`);
       

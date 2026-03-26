@@ -163,6 +163,7 @@ async def upload_user_avatar(
     """
     Upload avatar for the current user.
     """
+    logger.info(f"Uploading avatar for current user {current_user.id}, filename: {file.filename}")
     # Save file
     avatar_url = save_avatar(file, prefix=f"user_{current_user.id}")
     
@@ -308,6 +309,7 @@ async def upload_student_avatar(
     if not is_authorized:
         raise HTTPException(status_code=403, detail="Not authorized to upload avatar for this student")
 
+    logger.info(f"Uploading avatar for student {student_id}, filename: {file.filename}")
     # Save file
     avatar_url = save_avatar(file, prefix=f"student_{student_id}")
     

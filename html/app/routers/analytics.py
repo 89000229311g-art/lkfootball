@@ -376,11 +376,15 @@ async def get_coach_performance(
     if not end_date:
         end_date = date.today()
 
+    logger.info(f"Fetching coach performance from {start_date} to {end_date}")
+    
     # Get all active coaches
     coaches = db.query(User).filter(
         func.lower(User.role) == "coach",
         User.is_active == True
     ).all()
+    
+    logger.info(f"Found {len(coaches)} active coaches for performance analytics")
 
     performance_data = []
     

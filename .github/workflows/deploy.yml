@@ -43,7 +43,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /root/lksunnyfootball
-            # Исправляем права на папки (если нужно)
+            # Исправляем права на папки
+            mkdir -p html/logs html/uploads/avatars
             chown -R 999:999 html/logs html/uploads
-            # Перезапускаем контейнеры
-            docker compose up -d --build
+            chmod -R 777 html/uploads
+            # Перезапускаем контейнеры с принудительной пересборкой
+            docker compose down
+            docker compose up -d --build --force-recreate
+            # Очистка неиспользуемых образов (чтобы не забивать диск)
+            docker image prune -f

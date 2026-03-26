@@ -283,8 +283,7 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
 
     setUploadingAvatar(true);
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('file', file);
       await studentsAPI.uploadAvatar(studentId, formData);
       await fetchData(); // Refresh to get new avatar
     } catch (err) {
