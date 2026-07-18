@@ -355,7 +355,7 @@ export default function FinancialAnalytics({ data, isLoading, startDate, endDate
                         cx="50%"
                         cy="50%"
                         outerRadius="80%"
-                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
                       >
                         {serviceData.service_types.map((entry, index) => (

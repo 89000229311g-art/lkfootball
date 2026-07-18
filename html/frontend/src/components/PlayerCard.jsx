@@ -1,7 +1,7 @@
-import { Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
+import { Suspense, lazy, createElement, useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink } from 'react-router-dom';
-import { skillsAPI, groupsAPI, paymentsAPI, studentsAPI, attendanceAPI } from '../api/client';
+import { groupsAPI, paymentsAPI, studentsAPI, attendanceAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { navigationConfig } from '../config/navigation';
@@ -27,10 +27,9 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
   const [showFullAvatar, setShowFullAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [student, setStudent] = useState(null);
-  const [skillsHistory, setSkillsHistory] = useState([]);
   const [groupHistory, setGroupHistory] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState(null);
-  const [attendanceView, setAttendanceView] = useState('sheet'); // 'sheet' or 'overview'
+  const [attendanceView] = useState('sheet'); // 'sheet' or 'overview'
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,7 +39,6 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
   const [profileData, setProfileData] = useState({});
   const [changingGroup, setChangingGroup] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [showFreezeModal, setShowFreezeModal] = useState(false);
   const [pendingFreezeRequest, setPendingFreezeRequest] = useState(null);
   const [isProcessingFreeze, setIsProcessingFreeze] = useState(false); // New loading state
@@ -75,7 +73,7 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
     t('april') || 'Апрель', t('may') || 'Май', t('june') || 'Июнь',
     t('july') || 'Июль', t('august') || 'Август', t('september') || 'Сентябрь',
     t('october') || 'Октябрь', t('november') || 'Ноябрь', t('december') || 'Декабрь'
-  ]), [language]);
+  ]), [t]);
 
   const dStatsYear = useDeferredValue(statsYear);
   const dStatsQuarter = useDeferredValue(statsQuarter);
@@ -116,7 +114,7 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
           return { data: null };
         }),
         (currentIsAdmin || currentIsCoach) ? groupsAPI.getAll() : Promise.resolve({ data: [] }),
-        (currentIsAdmin || currentIsParent) ? studentsAPI.getFreezeRequest(studentId).catch(e => {
+        (currentIsAdmin || currentIsParent) ? studentsAPI.getFreezeRequest(studentId).catch(() => {
           // Ignore 404 for freeze request (it means no request exists)
           return { data: null };
         }) : Promise.resolve({ data: null }),
@@ -1916,7 +1914,7 @@ const TabButton = ({ id, icon: Icon, label, active, onClick }) => (
       ${active === id ? 'text-brand-yellow' : 'text-white/40 hover:text-white'}
     `}
   >
-    <Icon size={18} />
+    {createElement(Icon, { size: 18 })}
     <span className="font-bold tracking-wide">{label}</span>
     {active === id && (
       <motion.div 
@@ -1930,7 +1928,7 @@ const TabButton = ({ id, icon: Icon, label, active, onClick }) => (
 const StatCard = ({ icon: Icon, label, value, suffix, isEditing, onChange, type = 'text', options }) => (
   <div className={`bg-white/5 border border-white/5 rounded-2xl p-5 flex items-start gap-4 transition-colors group ${isEditing ? 'hover:bg-white/10 ring-1 ring-white/5' : 'hover:bg-white/10'}`}>
     <div className="p-3 bg-black/30 rounded-xl text-white/60 group-hover:text-brand-yellow transition-colors">
-      <Icon size={24} />
+      {createElement(Icon, { size: 24 })}
     </div>
     <div className="flex-1 min-w-0 relative">
       <p className="text-white/40 text-xs uppercase font-bold tracking-wider mb-1">{label}</p>
@@ -1968,7 +1966,7 @@ const StatCard = ({ icon: Icon, label, value, suffix, isEditing, onChange, type 
   </div>
 );
 
-const ProfileField = ({ label, name, value, isEditing, onChange, type = "text", options }) => (
+const ProfileField = ({ label, value, isEditing, onChange, type = "text", options }) => (
   <div className="flex flex-col gap-1">
     <span className="text-white/40 text-xs uppercase font-bold tracking-wider">{label}</span>
     {isEditing ? (

@@ -56,33 +56,7 @@ export default function Layout() {
   // Swipe to close logic
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-  const [isLandscape, setIsLandscape] = useState(false);
-
   const minSwipeDistance = 50;
-
-  useEffect(() => {
-    const handleOrientationChange = (e) => {
-      setIsLandscape(e.matches);
-    };
-
-    const mediaQuery = window.matchMedia("(orientation: landscape)");
-    setIsLandscape(mediaQuery.matches); // Set initial value
-
-    // Use addListener for compatibility as requested, though addEventListener is modern standard
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleOrientationChange);
-    } else {
-      mediaQuery.addListener(handleOrientationChange);
-    }
-
-    return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", handleOrientationChange);
-      } else {
-        mediaQuery.removeListener(handleOrientationChange);
-      }
-    };
-  }, []);
 
   const onTouchStart = (e) => {
     setTouchEnd(null); // Reset touch end

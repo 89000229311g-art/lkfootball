@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { skillsAPI } from '../api/client';
@@ -19,7 +19,6 @@ const AcademicDiary = forwardRef(({
   studentId: propStudentId, 
   isCoach, 
   isAdmin, 
-  isParent, 
   t: propT, 
   hideEvaluation = false,
   selectedYear: propSelectedYear,
@@ -44,7 +43,6 @@ const AcademicDiary = forwardRef(({
   };
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('diary'); // 'diary', 'analytics', 'discipline'
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [creationSettings, setCreationSettings] = useState(() => {
@@ -58,8 +56,6 @@ const AcademicDiary = forwardRef(({
       year: today.getFullYear()
     };
   });
-  const historyRef = useRef(null);
-
   useImperativeHandle(ref, () => ({
     exportExcel: handleExport,
     // Add PDF export if needed

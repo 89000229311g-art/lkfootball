@@ -719,7 +719,6 @@ export default function Communications() {
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('');
   const [feedPage, setFeedPage] = useState(1);
   const [feedHasMore, setFeedHasMore] = useState(true);
-  const feedLimit = 10;
 
   // Modal state moved to components
   const [showNewPostModal, setShowNewPostModal] = useState(false);
@@ -1528,20 +1527,6 @@ export default function Communications() {
       console.error('Failed to delete message:', err);
       alert(t('delete_error'));
     }
-  };
-
-  // 🌟 HELPER FOR GROUP CHAT TITLE
-  const getGroupChatTitle = () => {
-    if (!selectedChat) return null;
-    return (
-        <div className="flex flex-col">
-            <span className="font-medium text-white text-lg md:text-xl">{t('nav_communications')}</span>
-             <div className="flex items-center gap-2 text-sm text-gray-400">
-                <span className="text-yellow-500 font-bold">{selectedChat.name}</span>
-                <span className="hidden sm:inline">• {t('group_chat_label')}</span>
-             </div>
-        </div>
-    );
   };
 
   // ==================== RENDER TABS ====================

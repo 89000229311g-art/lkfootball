@@ -114,11 +114,11 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
           if (Array.isArray(parsed) && parsed.length > 0) {
             setMessageTemplates(parsed);
           }
-        } catch (e) {
+        } catch {
           // ignore parse error, keep defaults
         }
       }
-    } catch (e) {
+    } catch {
       // ignore load error, keep defaults
     } finally {
       setTemplatesLoading(false);
@@ -168,7 +168,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
         const res = await leadsAPI.update(leadId, { notes: newNotes });
         setFormData((prev) => ({ ...prev, notes: res.data?.notes ?? newNotes }));
         onUpdate(res.data ?? { ...lead, notes: newNotes });
-      } catch (e) {
+      } catch {
         // If API fails, keep local update to not block workflow
         const ts = new Date();
         const pad = (n) => String(n).padStart(2, '0');
@@ -178,7 +178,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
         const newNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
         setFormData((prev) => ({ ...prev, notes: newNotes }));
       }
-    } catch (error) {
+    } catch {
       toast.error('Не удалось скопировать текст');
     }
   };
@@ -447,7 +447,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
                         setTasks([...tasks, res.data]);
                         setNewTaskTitle('');
                         setNewTaskDueDate(null);
-                      } catch (error) {
+                      } catch {
                         toast.error('Не удалось добавить задачу');
                       }
                     }}
@@ -476,7 +476,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
                             try {
                               const res = await leadsAPI.updateTask(leadId, task.id, { completed: next });
                               setTasks(tasks.map((t) => (t.id === task.id ? res.data : t)));
-                            } catch (error) {
+                            } catch {
                               toast.error('Не удалось обновить задачу');
                             }
                           }}
@@ -498,7 +498,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
                             try {
                               await leadsAPI.deleteTask(leadId, task.id);
                               setTasks(tasks.filter((t) => t.id !== task.id));
-                            } catch (error) {
+                            } catch {
                               toast.error('Не удалось удалить задачу');
                             }
                           }}

@@ -35,9 +35,6 @@ export default function AnalyticsDashboard({ leads, stages = [], users = [] }) {
     // For now, we stick to the convention that 'success' and 'reject' keys are special if they exist,
     // otherwise we just count everything else as active.
     
-    const successStage = stages.find(s => s.key === 'success');
-    const rejectStage = stages.find(s => s.key === 'reject');
-    
     const success = leadsForStats.filter(l => l.status === 'success').length;
     const reject = leadsForStats.filter(l => l.status === 'reject').length;
     
