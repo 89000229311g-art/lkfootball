@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { attendanceAPI, eventsAPI, studentsAPI, groupsAPI, authAPI } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { getMediaUrl } from '../utils/media';
 import { Download, FileText, Loader2 } from 'lucide-react';
 
 export default function Attendance() {
@@ -1160,7 +1161,7 @@ export default function Attendance() {
                                       status === 'sick' ? 'bg-blue-500' : 'bg-white/10'
                                     }`}>
                                       {student.avatar_url ? (
-                                        <img src={`http://localhost:8000${student.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                                        <img src={getMediaUrl(student.avatar_url)} alt="" className="w-full h-full object-cover" />
                                       ) : (
                                         student.first_name?.[0] || '?'
                                       )}
@@ -1397,7 +1398,7 @@ export default function Attendance() {
                               <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm overflow-hidden">
                                   {student.avatar_url ? (
-                                    <img src={`http://localhost:8000${student.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                                    <img src={getMediaUrl(student.avatar_url)} alt="" className="w-full h-full object-cover" />
                                   ) : (
                                     student.first_name?.[0] || '?'
                                   )}

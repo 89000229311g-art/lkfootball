@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Calendar, Upload, FileText, AlertCircle, CheckCircle, X, Activity } from 'lucide-react';
 import { uploadAPI as fileUploadAPI, studentsAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { getMediaUrl } from '../utils/media';
 
 import CustomDatePicker from './CustomDatePicker';
 
@@ -305,7 +306,7 @@ const MedicalCertificate = ({ student, onUpdate, t, hideHeaderOnMobile = false }
               </div>
               <div className="flex gap-2">
                 <a 
-                  href={`http://localhost:8000${student.medical_certificate_file}`} 
+                  href={getMediaUrl(student.medical_certificate_file)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="p-2 hover:bg-white/10 rounded-lg text-blue-400 text-sm"

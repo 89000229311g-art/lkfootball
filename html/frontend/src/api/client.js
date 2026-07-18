@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-// Production: http://95.142.44.243:8000/api/v1
-// Development: http://localhost:8000/api/v1
-// Use relative path for dev to allow Vite proxy to handle requests from other devices
+// Use a relative path by default so Vite/nginx can route API requests per environment.
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export const apiClient = axios.create({
@@ -36,7 +34,6 @@ apiClient.interceptors.response.use(
     // Sometimes history/trash endpoint might return 401 due to strict permissions, but we don't want to logout the user completely
     const url = error.config?.url || '';
     const isHistoryEndpoint = url.includes('/history') || url.includes('/trash');
-    const isAuthMeEndpoint = url.includes('/auth/me');
 
     if (error.response?.status === 401 && !isHistoryEndpoint) {
       console.log('401 error detected at:', url);

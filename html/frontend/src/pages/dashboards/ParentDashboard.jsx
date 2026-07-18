@@ -21,6 +21,7 @@ import {
 } from 'chart.js';
 import { Radar, Line } from 'react-chartjs-2';
 import { getLocalizedName, transliterate } from '../../utils/transliteration';
+import { getMediaUrl } from '../../utils/media';
 
 ChartJS.register(
   RadialLinearScale,
@@ -790,7 +791,7 @@ export default function ParentDashboard({ t, language, user }) {
                   >
                     {teammate.avatar_url ? (
                       <img
-                        src={`http://localhost:8000${teammate.avatar_url}`}
+                        src={getMediaUrl(teammate.avatar_url)}
                         alt=""
                         className="w-12 h-12 rounded-full object-cover border-2 border-white/20"
                       />

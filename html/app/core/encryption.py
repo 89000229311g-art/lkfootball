@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Получаем ключ из переменных окружения
 _ENCRYPTION_KEY = os.getenv("CREDENTIALS_ENCRYPTION_KEY", "")
+_IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
 
 # Соль для дополнительной защиты (можно захардкодить или хранить в .env)
 _SALT = b"sunny_football_academy_2024"
@@ -45,11 +46,13 @@ class CredentialEncryption:
     def _derive_key(self) -> Optional[bytes]:
         """Генерирует ключ шифрования из мастер-ключа."""
         if not _ENCRYPTION_KEY:
-            logger.warning(
-                "⚠️ CREDENTIALS_ENCRYPTION_KEY не установлен! "
-                "Пароли будут храниться без шифрования. "
-                "Добавьте ключ в .env: CREDENTIALS_ENCRYPTION_KEY=<64 hex символа>"
+            message = (
+                "CREDENTIALS_ENCRYPTION_KEY не установлен. "
+                "В production хранение паролей без шифрования запрещено."
             )
+            if _IS_PRODUCTION:
+                raise RuntimeError(message)
+            logger.warning(f"⚠️ {message} Добавьте ключ в .env: CREDENTIALS_ENCRYPTION_KEY=<64 hex символа>")
             return None
         
         try:
@@ -66,6 +69,8 @@ class CredentialEncryption:
             return kdf.derive(master_key)
         except ValueError as e:
             logger.error(f"❌ Неверный формат CREDENTIALS_ENCRYPTION_KEY: {e}")
+            if _IS_PRODUCTION:
+                raise RuntimeError("Неверный формат CREDENTIALS_ENCRYPTION_KEY") from e
             return None
     
     @property
@@ -106,7 +111,9 @@ class CredentialEncryption:
             
         except Exception as e:
             logger.error(f"❌ Ошибка шифрования: {e}")
-            # В случае ошибки возвращаем исходный текст
+            if _IS_PRODUCTION:
+                raise
+            # В development оставляем обратную совместимость.
             return plaintext
     
     def decrypt(self, encrypted: str) -> str:

@@ -4,6 +4,7 @@ import { ru, enUS, ro } from 'date-fns/locale';
 import { messagesAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { getMediaUrl } from '../utils/media';
 
 export default function Chat() {
   const { user } = useAuth();
@@ -555,7 +556,7 @@ export default function Chat() {
                       }`}>
                         {msg.sender_avatar_url ? (
                           <img 
-                            src={`http://localhost:8000${msg.sender_avatar_url}`} 
+                            src={getMediaUrl(msg.sender_avatar_url)} 
                             alt={msg.sender_name} 
                             className="w-full h-full object-cover"
                           />

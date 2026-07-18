@@ -4,6 +4,7 @@ import { usersAPI, studentsAPI, groupsAPI, authAPI } from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { transliterate, getLocalizedName } from '../utils/transliteration';
+import { getMediaUrl } from '../utils/media';
 import PasswordInput from '../components/PasswordInput';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { Download, FileText, Loader2, Phone } from 'lucide-react';
@@ -1176,7 +1177,7 @@ export default function UsersManagement() {
                             userRole === 'parent' ? 'bg-green-600' : userRole === 'coach' ? 'bg-blue-600' : 'bg-red-600'
                           }`}>
                             {user.avatar_url ? (
-                              <img src={`http://localhost:8000${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                              <img src={getMediaUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               userRole === 'parent' ? '👨‍👩‍👧' : userRole === 'coach' ? '⚽' : '🔧'
                             )}

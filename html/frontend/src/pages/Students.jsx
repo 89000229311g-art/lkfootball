@@ -9,13 +9,9 @@ import { Search, Filter, Users, Loader2, AlertCircle, CheckCircle2, ChevronDown,
 import { exportToExcel, exportToPDF, getDateString } from '../utils/exportUtils';
 import { getLocalizedName, transliterate } from '../utils/transliteration';
 import StudentRow from '../components/StudentRow';
+import { getApiOrigin } from '../utils/media';
 
-const getBaseUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-  return apiUrl.replace('/api/v1', '');
-};
-
-const BASE_URL = getBaseUrl();
+const BASE_URL = getApiOrigin();
 
 // Analytics constants
 const months = [
