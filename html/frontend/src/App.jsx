@@ -4,14 +4,12 @@ import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ConnectionStatus } from './components/ConnectionStatus';
-import Students from './pages/Students';
-import UsersManagement from './pages/UsersManagement';
 import React, { Suspense, lazy } from 'react';
 
 // Lazy load pages
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-// const Students = lazy(() => import('./pages/Students'));
+const Students = lazy(() => import('./pages/Students'));
 const Groups = lazy(() => import('./pages/Groups'));
 const Events = lazy(() => import('./pages/Events'));
 const Calendar = lazy(() => import('./pages/Calendar'));
@@ -21,7 +19,7 @@ const CoachAnalytics = lazy(() => import('./pages/CoachAnalytics'));
 const Attendance = lazy(() => import('./pages/Attendance'));
 const Payments = lazy(() => import('./pages/Payments'));
 const Chat = lazy(() => import('./pages/Chat'));
-// const UsersManagement = lazy(() => import('./pages/UsersManagement'));
+const UsersManagement = lazy(() => import('./pages/UsersManagement'));
 const Settings = lazy(() => import('./pages/Settings'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const Communications = lazy(() => import('./pages/Communications'));

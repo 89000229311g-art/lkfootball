@@ -1,4 +1,4 @@
- import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
+import { Suspense, lazy, useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink } from 'react-router-dom';
 import { skillsAPI, groupsAPI, paymentsAPI, studentsAPI, attendanceAPI } from '../api/client';
@@ -12,13 +12,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { getAcademyYears } from '../utils/dateUtils';
-import AcademicDiary from './AcademicDiary';
 import SkillsVisualTab from './SkillsVisualTab';
 import MedicalCertificate from './MedicalCertificate';
 import StudentAttendanceReport from './StudentAttendanceReport';
 import PhysicalStatsTab from './PhysicalStatsTab';
 import FreezeRequestModal from './FreezeRequestModal';
 import CustomDatePicker from './CustomDatePicker';
+
+const AcademicDiary = lazy(() => import('./AcademicDiary'));
 
 export default function PlayerCard({ studentId, onClose, onGroupChanged, initialTab = 'profile' }) {
   const { user } = useAuth();
@@ -1581,19 +1582,21 @@ export default function PlayerCard({ studentId, onClose, onGroupChanged, initial
                 exit={{ opacity: 0, y: -10 }}
                 className="min-h-full flex flex-col"
               >
-                <AcademicDiary 
-                  ref={diaryRef}
-                  studentId={studentId}
-                  isCoach={isCoach}
-                  isAdmin={isAdmin}
-                  isParent={isParent}
-                  t={t}
-                  hideEvaluation={false}
-                  selectedYear={diaryYear}
-                  onYearChange={setDiaryYear}
-                  hideHeaderOnMobile={true}
-                  className="flex-1"
-                />
+                <Suspense fallback={<div className="text-white/50 p-6">{t('loading') || 'Загрузка...'}</div>}>
+                  <AcademicDiary 
+                    ref={diaryRef}
+                    studentId={studentId}
+                    isCoach={isCoach}
+                    isAdmin={isAdmin}
+                    isParent={isParent}
+                    t={t}
+                    hideEvaluation={false}
+                    selectedYear={diaryYear}
+                    onYearChange={setDiaryYear}
+                    hideHeaderOnMobile={true}
+                    className="flex-1"
+                  />
+                </Suspense>
               </motion.div>
             )}
 

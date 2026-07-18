@@ -4,7 +4,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import PlayerCard from '../components/PlayerCard';
 import MedicalMonitoring from '../components/MedicalMonitoring';
-import GroupAnalytics from '../components/GroupAnalytics';
 import { Search, Filter, Users, Loader2, AlertCircle, CheckCircle2, ChevronDown, Activity, FileText, BarChart2, TrendingUp, Trophy, DollarSign, ArrowLeft } from 'lucide-react';
 import { exportToExcel, exportToPDF, getDateString } from '../utils/exportUtils';
 import { getLocalizedName, transliterate } from '../utils/transliteration';
@@ -12,6 +11,7 @@ import StudentRow from '../components/StudentRow';
 import { getApiOrigin } from '../utils/media';
 
 const BASE_URL = getApiOrigin();
+const GroupAnalytics = React.lazy(() => import('../components/GroupAnalytics'));
 
 // Analytics constants
 const months = [
@@ -1096,11 +1096,13 @@ export default function Students() {
           </div>
         ) : (
           // Basic analytics for non-admin users
-          <GroupAnalytics 
-            groups={groups} 
-            groupId={selectedGroup !== 'all' ? parseInt(selectedGroup) : null}
-            t={t} 
-          />
+          <React.Suspense fallback={<div className="text-white/50 p-6">{t('loading') || 'Загрузка...'}</div>}>
+            <GroupAnalytics 
+              groups={groups} 
+              groupId={selectedGroup !== 'all' ? parseInt(selectedGroup) : null}
+              t={t} 
+            />
+          </React.Suspense>
         )
       ) : (
         <>
