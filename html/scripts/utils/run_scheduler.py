@@ -5,8 +5,8 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Добавляем корневую директорию в путь
-sys.path.insert(0, str(Path(__file__).parent))
+# Добавляем корневую директорию приложения в путь
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.core.scheduler import start_scheduler
 

@@ -78,7 +78,9 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - academy_local
+      academy_local:
+        aliases:
+          - football_api
 
   # ─── Nginx (Frontend + API proxy) ─────────────────────────────
   nginx:
