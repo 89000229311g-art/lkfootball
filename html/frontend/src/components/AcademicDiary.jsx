@@ -14,9 +14,6 @@ import {
   Calendar, ChevronLeft, Star, AlertCircle, X, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { exportToExcel } from '../utils/exportUtils';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 const AcademicDiary = forwardRef(({ 
   studentId: propStudentId, 
@@ -222,7 +219,7 @@ const AcademicDiary = forwardRef(({
 
   // --- Handlers ---
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = monthlyData.filter(m => m.id).map(item => ({
       period: `${item.fullName} ${selectedYear}`,
       technique: item.technique,
@@ -232,6 +229,8 @@ const AcademicDiary = forwardRef(({
       speed: item.speed,
       average: item.avg
     }));
+
+    const { exportToExcel } = await import('../utils/exportUtils');
     
     exportToExcel(data, {
       period: t('period'),
