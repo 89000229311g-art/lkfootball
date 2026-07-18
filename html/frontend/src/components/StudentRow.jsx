@@ -8,20 +8,13 @@ const StudentRow = ({
   student, 
   index, 
   onClick, 
-  onEdit, 
-  onDelete, 
   onCardClick,
   isAdmin,
   isCoach,
-  isParent,
   isSelected,
   toggleSelection,
   calculateAge,
   getParentInfo,
-  getStatusColor,
-  getStatusIcon,
-  BASE_URL,
-  group
 }) => {
   const { t, language } = useLanguage();
   
@@ -218,9 +211,6 @@ const StudentRow = ({
                 const monthName = currentMonthDate.toLocaleString(language === 'ru' ? 'ru-RU' : (language === 'ro' ? 'ro-RO' : 'en-US'), { month: 'long' });
                 const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
-                // Fee Calculation
-                const monthlyFee = student.individual_fee ?? group?.monthly_fee ?? 0;
-                
                 // Amount to display
                 // If paid (balance >= 0): Show Balance directly (usually 0 if exact payment, or positive if overpayment)
                 // If debt (balance < 0): Show Balance (negative)

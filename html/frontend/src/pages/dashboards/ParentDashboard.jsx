@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { groupsAPI, eventsAPI, paymentsAPI, skillsAPI, parentAPI, settingsAPI } from '../../api/client';
+import { groupsAPI, eventsAPI, paymentsAPI, skillsAPI, parentAPI } from '../../api/client';
 import PlayerCard from '../../components/PlayerCard';
 import UserAvatar from '../../components/UserAvatar';
 import { 
@@ -179,12 +179,6 @@ export default function ParentDashboard({ t, language, user }) {
     window.addEventListener('payments:updated', handler);
     return () => window.removeEventListener('payments:updated', handler);
   }, [fetchParentData]);
-
-  const getGroupName = (groupId) => {
-    const group = groups.find(g => g.id === groupId);
-    return group?.name || '-';
-  };
-
 
   const fetchGroupTeammates = async (childId) => {
     setLoadingGroup(true);

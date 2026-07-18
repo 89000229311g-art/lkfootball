@@ -465,11 +465,11 @@ export const statsAPI = {
     const response = await apiClient.get('/stats/dashboard');
     return response.data;
   },
-  getPaymentStats: async (period) => {
+  getPaymentStats: async () => {
     const response = await apiClient.get('/stats/dashboard');
     return response.data;
   },
-  getAttendanceStats: async (period) => {
+  getAttendanceStats: async () => {
       const response = await apiClient.get('/stats/dashboard');
       return response.data;
   }

@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 const SkillsVisualTab = ({ studentId, isCoach, isAdmin, t }) => {
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   
   // Filter State
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -32,7 +31,6 @@ const SkillsVisualTab = ({ studentId, isCoach, isAdmin, t }) => {
       setRatings(res.data || []);
     } catch (err) {
       console.error("Error fetching skills:", err);
-      setError('Failed to load skills');
     } finally {
       setLoading(false);
     }

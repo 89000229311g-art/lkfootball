@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLanguage } from '../context/LanguageContext.jsx';
 import { loggingAPI } from '../api/client';
 
 /**
@@ -7,7 +6,6 @@ import { loggingAPI } from '../api/client';
  * Автоматически проверяет соединение и показывает уведомление при проблемах
  */
 export function ConnectionStatus() {
-  const { t } = useLanguage();
   const [status, setStatus] = useState('connected'); // connected, checking, disconnected
   const [showBanner, setShowBanner] = useState(false);
   const [lastError, setLastError] = useState(null);

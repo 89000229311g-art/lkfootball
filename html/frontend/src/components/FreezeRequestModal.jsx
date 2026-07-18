@@ -7,7 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import CustomDatePicker from './CustomDatePicker';
 
 export default function FreezeRequestModal({ studentId, onClose, onSuccess, isAdmin }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({

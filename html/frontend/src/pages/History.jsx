@@ -154,7 +154,7 @@ export default function History() {
           uploads_max_size_mb: map['cleanup.uploads.max_size_mb'] || cs.uploads_max_size_mb,
           uploads_tmp_days: map['cleanup.uploads.tmp_days'] || cs.uploads_tmp_days,
         }));
-      } catch (e) {
+      } catch {
         // Silent fail; settings may be empty initially
       }
     };
@@ -339,7 +339,6 @@ export default function History() {
   };
 
   const [showCleanupModal, setShowCleanupModal] = useState(false);
-  const [cleanupAction, setCleanupAction] = useState(null);
   const [selectedTrashTypes, setSelectedTrashTypes] = useState({});
 
   const handleSystemCleanup = async (action, label) => {
@@ -350,7 +349,6 @@ export default function History() {
           const initialSelection = {};
           Object.keys(details).forEach(key => initialSelection[key] = true);
           setSelectedTrashTypes(initialSelection);
-          setCleanupAction({ action, label });
           setShowCleanupModal(true);
           return;
       }
@@ -364,11 +362,6 @@ export default function History() {
       try {
           setLoading(true);
           // If trash with types
-          let endpoint = `/admin/system/cleanup?action=${action}`;
-          if (action === 'empty_trash' && extraParams.types) {
-              endpoint += `&types=${extraParams.types.join(',')}`;
-          }
-          
           // Use client direct call for custom query params or update api/client.js
           // Since api/client.js has fixed signature, let's update it or use a direct call if needed.
           // Updating api/client.js is better.

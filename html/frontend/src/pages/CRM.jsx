@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useLanguage } from '../context/LanguageContext';
 import { leadsAPI, funnelAPI, usersAPI, authAPI } from '../api/client';
 import toast from 'react-hot-toast';
 import { Loader2, Plus, Settings, Download, FileText, X } from 'lucide-react';
@@ -10,7 +9,6 @@ import FunnelSettingsModal from '../components/crm/FunnelSettingsModal';
 import { exportToExcel, exportToPDF, getDateString } from '../utils/exportUtils';
 
 export default function CRM() {
-  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('funnel'); // 'dashboard' | 'funnel'
   const [leads, setLeads] = useState([]);
   const [stages, setStages] = useState([]);
@@ -105,7 +103,7 @@ export default function CRM() {
             } else {
                 setStages(defaultStages);
             }
-        } catch (e) {
+        } catch {
             setStages(defaultStages);
         }
       }

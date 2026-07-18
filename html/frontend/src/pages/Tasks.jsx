@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { tasksAPI, usersAPI } from '../api/client';
 import KanbanBoard from '../components/crm/KanbanBoard';
 import TaskCard from '../components/tasks/TaskCard';
@@ -15,7 +14,6 @@ const stages = [
 ];
 
 export default function Tasks() {
-  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

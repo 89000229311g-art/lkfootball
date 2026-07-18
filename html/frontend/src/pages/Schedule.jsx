@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { groupsAPI, scheduleAPI, messagesAPI, eventsAPI, historyAPI, loggingAPI } from '../api/client';
+import { groupsAPI, scheduleAPI, eventsAPI, historyAPI, loggingAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Loader2, Download, FileText, Calendar as CalendarIcon, List as ListIcon } from 'lucide-react';

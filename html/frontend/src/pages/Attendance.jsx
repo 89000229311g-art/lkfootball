@@ -11,7 +11,6 @@ export default function Attendance() {
   const location = useLocation();
   const printRef = useRef(null);
   const [isExporting] = useState(false);
-  const [user, setUser] = useState(null);
   const [events, setEvents] = useState([]);
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -40,12 +39,9 @@ export default function Attendance() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load user first to get role
-        let userData = null;
+        // Validate the session before loading attendance data.
         try {
-            const userRes = await authAPI.getMe();
-            userData = userRes.data;
-            setUser(userData);
+            await authAPI.getMe();
         } catch (e) {
             console.error("Auth failed", e);
             setErrorMessage('Ошибка авторизации');
@@ -558,10 +554,6 @@ export default function Attendance() {
     // Use loose comparison or Number() to handle potential string/number mismatches
     const groupIds = [...new Set(dayEvents.map(e => Number(e.group_id)))];
     
-    // Filter by role: coach sees only their groups, managers see all groups
-    const isCoach = user?.role?.toLowerCase() === 'coach';
-    const isManager = ['super_admin', 'admin', 'owner'].includes(user?.role?.toLowerCase());
-    
     const allGroupsWithEvents = groups
       .filter(g => groupIds.includes(Number(g.id)))
       .map(group => {
@@ -624,7 +616,7 @@ export default function Attendance() {
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return '--:--';
       return date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hour12: false });
-    } catch (e) {
+    } catch {
       return '--:--';
     }
   };

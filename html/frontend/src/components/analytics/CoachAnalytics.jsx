@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { analyticsAPI } from '../../api/client';
 import { Loader2, Trophy, Users, UserCheck, Activity, Star, Medal } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,7 +27,7 @@ export default function CoachAnalytics({ startDate, endDate }) {
     if (startDate) {
       fetchData();
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, t]);
 
   const getAvatarUrl = (url) => {
     if (!url) return null;
@@ -71,8 +71,6 @@ export default function CoachAnalytics({ startDate, endDate }) {
   }).sort((a, b) => b.score - a.score);
 
   const top3 = rankedData.slice(0, 3);
-  const rest = rankedData.slice(3);
-
   return (
     <div className="space-y-8">
       {/* Podium Section */}

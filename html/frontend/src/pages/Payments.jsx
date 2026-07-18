@@ -48,7 +48,6 @@ export default function Payments() {
   const [editPeriod, setEditPeriod] = useState('');
 
   // Payment Details (for Parents)
-  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [paymentTab, setPaymentTab] = useState('qr'); // 'qr', 'requisites'
   const [uploadFile, setUploadFile] = useState(null);
@@ -461,7 +460,7 @@ export default function Payments() {
         });
 
       // Wait for all to complete (independent of each other's failure)
-      const [allGroups, activeStudents, archivedStudents, allPayments] = await Promise.all([
+      const [, activeStudents, archivedStudents, allPayments] = await Promise.all([
         groupsPromise,
         studentsPromise,
         archivedPromise,
