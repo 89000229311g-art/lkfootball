@@ -6,11 +6,14 @@ import GlobalSearch from './GlobalSearch';
 import { navigationConfig, roleLabelKeys } from '../config/navigation';
 import { Search, Menu, X } from 'lucide-react';
 import { messagesAPI } from '../api/client';
+import { useAcademy } from '../context/AcademyContext.jsx';
+import { getAcademyLanguageCodes } from '../utils/academyLocale';
 
 function normalizeRole(role) {
   if (!role) return null;
   const r = role.toString().toLowerCase().trim();
   if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin') return 'super_admin';
+  if (r === 'platform_owner' || r === 'platform owner' || r === 'userrole.platform_owner') return 'platform_owner';
   if (r === 'owner' || r === 'userrole.owner') return 'owner';
   if (r === 'admin' || r === 'administrator' || r === 'userrole.admin') return 'admin';
   if (r === 'accountant' || r === 'userrole.accountant') return 'accountant';
@@ -21,6 +24,7 @@ function normalizeRole(role) {
 
 export default function Layout() {
   const auth = useAuth();
+  const { academy } = useAcademy();
   const user = auth?.user;
   const logout = auth?.logout;
   
@@ -98,6 +102,11 @@ export default function Layout() {
 
   // Normalize role to lowercase
   const normalizedRole = normalizeRole(user?.role) || 'parent';
+  const academyLanguageCodes = getAcademyLanguageCodes(academy);
+  const availableLanguages = LANGUAGES.filter((lang) => academyLanguageCodes.includes(lang.code));
+  const showLanguageSwitcher = availableLanguages.length > 1;
+  const academyName = academy?.name || 'Football Academy';
+  const academyShortName = academy?.short_name || academyName;
   
   // Get base menu items for role
   let menuItems = [...(navigationConfig[normalizedRole] || navigationConfig.parent)];
@@ -190,8 +199,9 @@ export default function Layout() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {showLanguageSwitcher && (
                   <div className="flex gap-1">
-                    {LANGUAGES.map(lang => (
+                    {availableLanguages.map(lang => (
                       <button 
                         key={lang.code}
                         onClick={() => changeLanguage(lang.code)}
@@ -205,6 +215,7 @@ export default function Layout() {
                       </button>
                     ))}
                   </div>
+                  )}
                   <button 
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-1 hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors"
@@ -263,7 +274,7 @@ export default function Layout() {
       {/* Mobile Header */}
       <div className="fixed top-2 left-2 right-2 h-14 bg-sidebar/90 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl z-50 lg:hidden landscape-hidden flex items-center justify-between px-4 transition-all duration-300">
         <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
-          ☀️ Sunny Academy
+          {academyShortName}
         </h1>
         <div className="flex items-center gap-2">
           <button 
@@ -309,7 +320,7 @@ export default function Layout() {
       `}>
         <div className="p-6 border-b border-sidebar-border/50 lg:pt-6 landscape:pt-6">
           <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
-            ☀️ Sunny Football Academy
+            {academyName}
           </h1>
         </div>
         
@@ -351,8 +362,9 @@ export default function Layout() {
         </nav>
         
         <div className="p-4 border-t border-sidebar-border/50 bg-sidebar/50">
+          {showLanguageSwitcher && (
           <div className="flex gap-2 mb-4 justify-center">
-             {LANGUAGES.map(lang => (
+             {availableLanguages.map(lang => (
                <button 
                  key={lang.code}
                  onClick={() => changeLanguage(lang.code)}
@@ -366,6 +378,7 @@ export default function Layout() {
                </button>
              ))}
           </div>
+          )}
           <div className="text-sm mb-3 px-2">
             <div className="font-bold text-foreground">{user?.full_name || user?.phone}</div>
             <div className="text-primary text-xs font-medium uppercase tracking-wider">{t(roleLabelKeys[normalizedRole]) || user?.role}</div>

@@ -118,6 +118,7 @@ class EventUpdate(BaseModel):
 
 class EventInDB(EventResponseBase):
     id: int
+    academy_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class EventResponse(EventInDB):

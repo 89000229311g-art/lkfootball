@@ -5,7 +5,7 @@ services:
   #-----------------------------------------------------------------------------
   db:
     image: postgres:15-alpine
-    container_name: football_db
+    container_name: football2_db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -27,7 +27,7 @@ services:
   #-----------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
-    container_name: football_redis
+    container_name: football2_redis
     restart: always
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
@@ -47,7 +47,7 @@ services:
     build:
       context: ./html
       dockerfile: Dockerfile.prod
-    container_name: football_backend
+    container_name: football2_backend
     restart: always
     environment:
       - POSTGRES_SERVER=db
@@ -77,14 +77,14 @@ services:
     networks:
       academy_network:
         aliases:
-          - football_api
+          - football2_api
 
   #-----------------------------------------------------------------------------
   # Nginx (Frontend & API Proxy)
   #-----------------------------------------------------------------------------
   nginx:
     image: nginx:alpine
-    container_name: football_nginx
+    container_name: football2_nginx
     restart: always
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
@@ -100,16 +100,16 @@ services:
     labels:
       - "traefik.enable=true"
       # Указываем ваш новый поддомен
-      - "traefik.http.routers.lksunnyfootball.rule=Host(`lk.sunnyfootball.com`)"
-      - "traefik.http.routers.lksunnyfootball.entrypoints=websecure"
-      - "traefik.http.routers.lksunnyfootball.tls.certresolver=myresolver"
+      - "traefik.http.routers.lksunnyfootball2.rule=Host(`lk2.sunnyfootball.com`)"
+      - "traefik.http.routers.lksunnyfootball2.entrypoints=websecure"
+      - "traefik.http.routers.lksunnyfootball2.tls.certresolver=myresolver"
       # Редирект с HTTP на HTTPS
-      - "traefik.http.routers.lksunnyfootball-http.rule=Host(`lk.sunnyfootball.com`)"
-      - "traefik.http.routers.lksunnyfootball-http.entrypoints=web"
-      - "traefik.http.routers.lksunnyfootball-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.lksunnyfootball2-http.rule=Host(`lk2.sunnyfootball.com`)"
+      - "traefik.http.routers.lksunnyfootball2-http.entrypoints=web"
+      - "traefik.http.routers.lksunnyfootball2-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       # Nginx внутри контейнера слушает порт 80 (согласно вашему Dockerfile)
-      - "traefik.http.services.lksunnyfootball.loadbalancer.server.port=80"
+      - "traefik.http.services.lksunnyfootball2.loadbalancer.server.port=80"
       - "traefik.docker.network=web"
 
   #-----------------------------------------------------------------------------
@@ -119,7 +119,7 @@ services:
     build:
       context: ./html
       dockerfile: Dockerfile.prod
-    container_name: football_scheduler
+    container_name: football2_scheduler
     restart: always
     command: python scripts/utils/run_scheduler.py
     environment:
@@ -143,7 +143,7 @@ services:
   #-----------------------------------------------------------------------------
   backup:
     image: postgres:15-alpine
-    container_name: football_backup
+    container_name: football2_backup
     restart: "no"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}

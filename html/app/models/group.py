@@ -12,13 +12,15 @@ group_coaches = Table(
     'group_coaches',
     Base.metadata,
     Column('group_id', Integer, ForeignKey('groups.id', ondelete='CASCADE'), primary_key=True),
-    Column('coach_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    Column('coach_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
+    Column('academy_id', Integer, ForeignKey('academies.id', ondelete='CASCADE'), nullable=True, index=True)
 )
 
 class Group(Base):
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     name = Column(String)  # e.g., "Дети 2020 г.р."
     age_group = Column(String, nullable=True) # e.g. "2015" or "U-10"
     coach_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Primary coach (legacy)
@@ -38,6 +40,7 @@ class Group(Base):
     deletion_reason = Column(String(255), nullable=True)
 
     # Relationships
+    academy = relationship("Academy", back_populates="groups")
     coach = relationship("User", back_populates="coached_groups", foreign_keys=[coach_id])
     coaches = relationship("User", secondary=group_coaches, backref="coach_groups")  # Multiple coaches
     students = relationship("Student", back_populates="group", cascade="all, delete-orphan", passive_deletes=True)

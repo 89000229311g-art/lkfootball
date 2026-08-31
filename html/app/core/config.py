@@ -7,7 +7,7 @@ import secrets
 
 class Settings(BaseSettings):
     # Base
-    PROJECT_NAME: str = "Sunny Football Academy"
+    PROJECT_NAME: str = "Football CRM"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     

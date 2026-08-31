@@ -46,6 +46,7 @@ class GroupUpdate(BaseModel):
 
 class GroupInDB(GroupBase):
     id: int
+    academy_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class GroupResponse(GroupInDB):

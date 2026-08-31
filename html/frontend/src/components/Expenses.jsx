@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Trash2, Calendar, FileText, CreditCard, X, Filter, Search,
   Loader2
@@ -38,34 +38,25 @@ export default function Expenses() {
     description: ''
   });
 
-  useEffect(() => {
-    fetchCategories();
-    fetchMarketingCampaigns();
-  }, []);
-
-  const fetchMarketingCampaigns = async () => {
+  const fetchMarketingCampaigns = useCallback(async () => {
     try {
       const res = await marketingAPI.getCampaigns();
       setMarketingCampaigns(res.data);
     } catch (err) {
       console.error("Failed to fetch marketing campaigns", err);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [dateRange]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const res = await expensesAPI.getCategories();
       setCategories(res.data);
     } catch (err) {
       console.error("Failed to fetch categories", err);
     }
-  };
+  }, []);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     setLoading(true);
     try {
       const res = await expensesAPI.getAll({ 
@@ -79,7 +70,16 @@ export default function Expenses() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchMarketingCampaigns();
+  }, [fetchCategories, fetchMarketingCampaigns]);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
   const handleCreateExpense = async (e) => {
     e.preventDefault();

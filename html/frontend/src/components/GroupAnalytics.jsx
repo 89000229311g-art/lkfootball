@@ -15,7 +15,7 @@ const GroupAnalytics = ({ groupId: propGroupId, groups = [], t }) => {
     if (groups.length > 0 && !selectedGroupId) {
       setSelectedGroupId(groups[0].id);
     }
-  }, [groups]);
+  }, [groups, selectedGroupId]);
 
   useEffect(() => {
     if (propGroupId) {

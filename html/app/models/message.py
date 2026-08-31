@@ -33,6 +33,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     recipient_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True)
@@ -58,6 +59,7 @@ class Post(Base):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     author_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True)  # null = для всех
     

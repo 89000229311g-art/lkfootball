@@ -1396,7 +1396,6 @@ export default function Communications() {
     isCoach,
     user?.id,
     unreadNotificationsCount,
-    supportMessages.length,
     t
   ]);
 

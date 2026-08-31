@@ -1,8 +1,8 @@
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Request
 from sqlalchemy.orm import Session
 from app.core.deps import get_db, get_current_user
-from app.models import User, SchoolSettings
+from app.models import Academy, User, SchoolSettings
 from app.schemas.settings import SchoolSettingsCreate, SchoolSettingsUpdate, SchoolSettingsResponse
 from app.core.scheduler import refresh_cleanup_schedule, refresh_alerts_job
 
@@ -55,9 +55,17 @@ async def update_setting(
     return setting
 
 @router.get("/public/payment-info")
-async def get_payment_info(db: Session = Depends(get_db)):
+async def get_payment_info(request: Request, db: Session = Depends(get_db)):
     """Public endpoint for payment info (safe to expose)"""
+    slug = request.headers.get("X-Academy-Slug") or request.query_params.get("academy") or "sunny"
+    academy = db.query(Academy).filter(Academy.slug == slug.lower(), Academy.is_active.is_(True)).first()
+    if not academy:
+        raise HTTPException(status_code=404, detail="Academy not found")
+
     # Fetch specific keys
     keys = ["payment_bank_details", "payment_qr_url", "payment_instructions"]
-    settings = db.query(SchoolSettings).filter(SchoolSettings.key.in_(keys)).all()
+    settings = db.query(SchoolSettings).filter(
+        SchoolSettings.academy_id == academy.id,
+        SchoolSettings.key.in_(keys)
+    ).all()
     return {s.key: s.value for s in settings}

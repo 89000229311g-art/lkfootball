@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from enum import Enum
 from .base import Base
 
 class UserRole(str, Enum):
+    PLATFORM_OWNER = "platform_owner"
     SUPER_ADMIN = "super_admin"
     OWNER = "owner"
     ADMIN = "admin"
@@ -13,9 +14,13 @@ class UserRole(str, Enum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_academy_phone", "academy_id", "phone", unique=True),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    phone = Column(String, unique=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
+    phone = Column(String, index=True)
     phone_secondary = Column(String, nullable=True)  # Backup phone number
     password_hash = Column(String)
     full_name = Column(String)
@@ -54,6 +59,7 @@ class User(Base):
         return "parent"
 
     # Relationships with cascade delete support
+    academy = relationship("Academy", back_populates="users")
     student_guardians = relationship("StudentGuardian", back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     coached_groups = relationship("Group", back_populates="coach", foreign_keys="Group.coach_id")  # coach_id SET NULL on delete
     sent_messages = relationship("Message", foreign_keys="Message.sender_id", cascade="all, delete-orphan", passive_deletes=True)

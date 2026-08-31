@@ -144,10 +144,10 @@ export default function FinancialAnalytics({ data, isLoading, startDate, endDate
     }).format(val || 0);
   };
 
-  const getCategoryLabel = (catId) => {
+  const getCategoryLabel = useCallback((catId) => {
     const cat = categories.find(c => c.id === catId);
     return cat ? cat.label : catId;
-  };
+  }, [categories]);
 
   const chartData = data?.data || [];
   const totalRevenue = data?.total_revenue || 0;
@@ -193,7 +193,7 @@ export default function FinancialAnalytics({ data, isLoading, startDate, endDate
     const total = items.reduce((sum, item) => sum + item.value, 0);
 
     return { items, total };
-  }, [expenses, totalSalary, categories]);
+  }, [expenses, getCategoryLabel, totalSalary]);
 
   if (isLoading) {
     return <div className="p-12 text-center text-white/50">Загрузка...</div>;

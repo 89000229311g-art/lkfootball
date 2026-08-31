@@ -13,6 +13,7 @@ class Payment(Base):
     
     # Performance indexes for frequently queried columns
     __table_args__ = (
+        Index('ix_payment_academy_status_date', 'academy_id', 'status', 'payment_date'),
         Index('ix_payment_student_period', 'student_id', 'payment_period'),
         Index('ix_payment_status_date', 'status', 'payment_date'),
         Index('ix_payment_period', 'payment_period'),
@@ -20,6 +21,7 @@ class Payment(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"))
     amount = Column(Float)
     payment_date = Column(Date)

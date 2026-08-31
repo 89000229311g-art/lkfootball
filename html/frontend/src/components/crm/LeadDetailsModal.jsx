@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Loader2, X, Save, Calendar } from 'lucide-react';
 import { leadsAPI, settingsAPI } from '../../api/client';
 import toast from 'react-hot-toast';
@@ -68,14 +68,7 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
   ];
   const [messageTemplates, setMessageTemplates] = useState(defaultTemplates);
 
-  useEffect(() => {
-    if (leadId) {
-      fetchLead();
-      fetchTemplates();
-    }
-  }, [leadId]);
-
-  const fetchLead = async () => {
+  const fetchLead = useCallback(async () => {
     try {
       setLoading(true);
       const res = await leadsAPI.getById(leadId);
@@ -100,9 +93,9 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
     } finally {
       setLoading(false);
     }
-  };
+  }, [leadId, onClose]);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setTemplatesLoading(true);
       const res = await settingsAPI.getAll();
@@ -123,7 +116,14 @@ export default function LeadDetailsModal({ leadId, onClose, onUpdate, stages = [
     } finally {
       setTemplatesLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (leadId) {
+      fetchLead();
+      fetchTemplates();
+    }
+  }, [fetchLead, fetchTemplates, leadId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

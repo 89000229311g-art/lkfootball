@@ -1,4 +1,5 @@
 from .base import Base
+from .academy import Academy
 from .user import User, UserRole
 from .credential import UserCredential
 from .group import Group, SubscriptionType

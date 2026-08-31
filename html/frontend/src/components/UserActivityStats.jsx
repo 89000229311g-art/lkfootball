@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminAPI } from '../api/client';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -14,11 +14,7 @@ export default function UserActivityStats() {
   const [data, setData] = useState(null);
   const [days, setDays] = useState(30);
 
-  useEffect(() => {
-    fetchStats();
-  }, [days]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
       const response = await adminAPI.getActivityStats(days);
@@ -30,7 +26,11 @@ export default function UserActivityStats() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   if (loading) {
     return (

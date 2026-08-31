@@ -56,6 +56,7 @@ class PaymentUpdate(BaseModel):
 
 class PaymentInDB(PaymentBase):
     id: int
+    academy_id: Optional[int] = None
     student_id: Optional[int] = None  # Allow None for orphaned records
     model_config = ConfigDict(from_attributes=True)
 

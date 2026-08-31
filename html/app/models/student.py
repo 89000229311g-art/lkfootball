@@ -12,6 +12,7 @@ class Student(Base):
     __tablename__ = "students"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     first_name = Column(String)
     last_name = Column(String)
     dob = Column(Date)
@@ -72,6 +73,7 @@ class Student(Base):
     stars = Column(Integer, default=0)
     
     # Relationships
+    academy = relationship("Academy", back_populates="students")
     group = relationship("Group", back_populates="students")
     guardians = relationship("StudentGuardian", back_populates="student")
     attendance_records = relationship("Attendance", back_populates="student")

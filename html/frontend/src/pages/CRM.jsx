@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { leadsAPI, funnelAPI, usersAPI, authAPI } from '../api/client';
 import toast from 'react-hot-toast';
 import { Loader2, Plus, Settings, Download, FileText, X } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function CRM() {
   const [rejectReason, setRejectReason] = useState('');
 
   // Default fallback stages if API fails or is empty initially
-  const defaultStages = [
+  const defaultStages = useMemo(() => [
     { key: 'new', title: 'Новый лид', color: 'bg-blue-500' },
     { key: 'call', title: 'Звонок', color: 'bg-yellow-500' },
     { key: 'trial', title: 'Первая тренировка', color: 'bg-purple-500' },
@@ -46,11 +46,7 @@ export default function CRM() {
     { key: 'deal', title: 'Сделка', color: 'bg-green-500' },
     { key: 'success', title: 'Успех', color: 'bg-emerald-600' },
     { key: 'reject', title: 'Отказ', color: 'bg-red-500' },
-  ];
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  ], []);
 
   useEffect(() => {
     if (showCreateModal || showSettingsModal || selectedLeadId || rejectModal.open) {
@@ -61,7 +57,7 @@ export default function CRM() {
     return () => { document.body.style.overflow = 'unset'; };
   }, [showCreateModal, showSettingsModal, selectedLeadId, rejectModal.open]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [leadsRes, stagesRes, meRes, usersRes] = await Promise.all([
@@ -115,7 +111,11 @@ export default function CRM() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [defaultStages, stages.length]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const fetchStages = async () => {
     try {

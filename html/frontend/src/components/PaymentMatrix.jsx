@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { paymentsAPI, groupsAPI, analyticsAPI, loggingAPI } from '../api/client';
 import { Loader2, Calendar, Users, AlertCircle, CheckCircle2, Download, FileText, Info } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
@@ -25,12 +25,7 @@ export default function PaymentMatrix() {
   }, []);
   
   // Загружаем матрицу при изменении фильтров
-  useEffect(() => {
-    fetchMatrix();
-    fetchCashFlow();
-  }, [selectedYear, selectedGroup]);
-  
-  const fetchCashFlow = async () => {
+  const fetchCashFlow = useCallback(async () => {
     try {
         // Fetch revenue for the selected year (Cash Flow)
         // Using getRevenue with period='year' defaults to current year in backend if no dates provided?
@@ -45,9 +40,9 @@ export default function PaymentMatrix() {
     } catch (e) {
         console.error("Error fetching cash flow:", e);
     }
-  };
+  }, [selectedYear]);
 
-  const fetchMatrix = async () => {
+  const fetchMatrix = useCallback(async () => {
     setLoading(true);
     try {
       console.log('Fetching matrix for year:', selectedYear);
@@ -59,17 +54,22 @@ export default function PaymentMatrix() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedGroup, selectedYear]);
+
+  useEffect(() => {
+    fetchMatrix();
+    fetchCashFlow();
+  }, [fetchCashFlow, fetchMatrix]);
   
-  const months = [
+  const months = useMemo(() => [
     { id: 1, name: t('jan_short') || 'Янв' }, { id: 2, name: t('feb_short') || 'Фев' }, { id: 3, name: t('mar_short') || 'Мар' },
     { id: 4, name: t('apr_short') || 'Апр' }, { id: 5, name: t('may_short') || 'Май' }, { id: 6, name: t('jun_short') || 'Июн' },
     { id: 7, name: t('jul_short') || 'Июл' }, { id: 8, name: t('aug_short') || 'Авг' }, { id: 9, name: t('sep_short') || 'Сен' },
     { id: 10, name: t('oct_short') || 'Окт' }, { id: 11, name: t('nov_short') || 'Ноя' }, { id: 12, name: t('dec_short') || 'Дек' }
-  ];
+  ], [t]);
 
   // Подсчет итогов по месяцам
-  const totals = React.useMemo(() => {
+  const totals = useMemo(() => {
     if (!matrixData?.students) return { monthly: {}, total: 0 };
     
     const monthly = {};

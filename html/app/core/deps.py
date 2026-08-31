@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .database import SessionLocal, AsyncSessionLocal, get_async_db
 from .security import ALGORITHM, verify_token
+from .tenant import set_tenant_context
 from app.models import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
@@ -35,18 +36,26 @@ async def get_current_user(
     if payload is None:
         raise credentials_exception
     
+    user_id = payload.get("uid")
     phone: str = payload.get("sub")
-    if phone is None:
+    academy_id = payload.get("academy_id")
+
+    if user_id:
+        user = db.query(User).filter(User.id == int(user_id)).first()
+    elif phone and academy_id:
+        user = db.query(User).filter(User.phone == phone, User.academy_id == academy_id).first()
+    elif phone:
+        user = db.query(User).filter(User.phone == phone).first()
+    else:
         raise credentials_exception
-    
-    user = db.query(User).filter(User.phone == phone).first()
+
     if user is None:
         raise credentials_exception
     
     # Check if user is active/not deleted
     if not user.is_active or user.deleted_at is not None:
          raise credentials_exception
-    
+    set_tenant_context(db, user)
     return user
 
 # ==================== ASYNC VERSION (optimized for 1000+ users) ====================

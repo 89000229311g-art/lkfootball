@@ -197,7 +197,7 @@ export default function Schedule() {
     } finally {
       setLoading(false);
     }
-  }, [isCoach, isParent, user?.id]); // Removed selectedGroup dependency
+  }, [isParent]); // Backend already filters data by the current user.
 
   // Auto-select first group for coach/parent
   useEffect(() => {
@@ -1952,14 +1952,14 @@ function TemplateModal({ template, groups, onClose, onSave, selectedGroupId }) {
          setFormData(prev => ({ ...prev, name: `Расписание ${group.name}` }));
       }
     }
-  }, [formData.group_id, groups, template]);
+  }, [formData.group_id, formData.name, groups, template]);
 
   // Sync group_id if selectedGroupId provided and form is empty
   useEffect(() => {
     if (selectedGroupId && !formData.group_id && !template) {
        setFormData(prev => ({ ...prev, group_id: selectedGroupId }));
     }
-  }, [selectedGroupId, template]);
+  }, [formData.group_id, selectedGroupId, template]);
 
   // Quick Fill Modal State
   const [showQuickFillDialog, setShowQuickFillDialog] = useState(false);

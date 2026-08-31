@@ -1,11 +1,11 @@
 {
-  "name": "Sunny Football Academy",
-  "short_name": "Sunny Academy",
-  "description": "Управление футбольной академией - студенты, платежи, расписание",
+  "name": "Football CRM",
+  "short_name": "Football CRM",
+  "description": "CRM-платформа для футбольных академий",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#EAB308",
+  "theme_color": "#16A34A",
   "orientation": "portrait-primary",
   "icons": [
     {

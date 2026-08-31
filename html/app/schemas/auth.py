@@ -4,7 +4,7 @@ import re
 from app.models.user import UserRole
 
 # Valid roles
-VALID_ROLES = ["super_admin", "admin", "coach", "parent", "owner", "accountant"]
+VALID_ROLES = ["platform_owner", "super_admin", "admin", "coach", "parent", "owner", "accountant"]
 
 class Token(BaseModel):
     access_token: str
@@ -22,11 +22,12 @@ class UserLogin(BaseModel):
     @classmethod
     def validate_phone(cls, v: str) -> str:
         phone = v.strip().replace(" ", "").replace("-", "")
-        if not re.match(r'^\+?[0-9]{10,15}$', phone):
-            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX (10-15 цифр)")
+        if not re.match(r'^\+?[0-9]{6,15}$', phone):
+            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX или локальный номер (6-15 цифр)")
         return phone
 
 class UserCreate(BaseModel):
+    academy_id: Optional[int] = None
     phone: str = Field(..., example="+37312345678")
     password: str = Field(..., max_length=100)  # min_length проверяется в валидаторе
     full_name: str = Field(..., max_length=200)  # min_length проверяется в валидаторе
@@ -51,8 +52,8 @@ class UserCreate(BaseModel):
         if v is None:
             return None
         phone = v.strip().replace(" ", "").replace("-", "")
-        if not re.match(r'^\+?[0-9]{10,15}$', phone):
-            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX (10-15 цифр)")
+        if not re.match(r'^\+?[0-9]{6,15}$', phone):
+            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX или локальный номер (6-15 цифр)")
         return phone
     
     @field_validator("full_name", "child_full_name")
@@ -111,8 +112,8 @@ class UserUpdate(BaseModel):
         if v is None:
             return None
         phone = v.strip().replace(" ", "").replace("-", "")
-        if not re.match(r'^\+?[0-9]{10,15}$', phone):
-            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX (10-15 цифр)")
+        if not re.match(r'^\+?[0-9]{6,15}$', phone):
+            raise ValueError("Телефон должен быть в формате: +373XXXXXXXX или локальный номер (6-15 цифр)")
         return phone
     
     @field_validator("full_name")
@@ -143,6 +144,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    academy_id: Optional[int] = None
     phone: str
     phone_secondary: Optional[str] = None
     full_name: str

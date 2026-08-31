@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { tasksAPI, usersAPI } from '../api/client';
 import KanbanBoard from '../components/crm/KanbanBoard';
 import TaskCard from '../components/tasks/TaskCard';
@@ -90,7 +90,7 @@ export default function Tasks() {
     }
   };
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoadingAnalytics(true);
       const res = await tasksAPI.getAnalytics(30);
@@ -101,13 +101,13 @@ export default function Tasks() {
     } finally {
       setLoadingAnalytics(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (view === 'analytics' && !analyticsData) {
       fetchAnalytics();
     }
-  }, [view]);
+  }, [analyticsData, fetchAnalytics, view]);
 
   const openCreateModal = () => {
     setEditingTask(null);

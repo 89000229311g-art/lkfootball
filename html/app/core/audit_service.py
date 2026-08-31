@@ -100,6 +100,7 @@ def log_create(
     entity_name = get_entity_name(entity, entity_type)
     
     audit = AuditLog(
+        academy_id=getattr(entity, 'academy_id', None) or (getattr(user, 'academy_id', None) if user else None),
         entity_type=entity_type,
         entity_id=entity.id,
         entity_name=entity_name,
@@ -147,6 +148,7 @@ def log_update(
         pass
     
     audit = AuditLog(
+        academy_id=getattr(entity, 'academy_id', None) or (getattr(user, 'academy_id', None) if user else None),
         entity_type=entity_type,
         entity_id=entity.id,
         entity_name=entity_name,
@@ -178,6 +180,7 @@ def log_delete(
     entity_name = get_entity_name(entity, entity_type)
     
     audit = AuditLog(
+        academy_id=getattr(entity, 'academy_id', None) or (getattr(user, 'academy_id', None) if user else None),
         entity_type=entity_type,
         entity_id=entity.id,
         entity_name=entity_name,
@@ -209,6 +212,7 @@ def log_restore(
     entity_name = get_entity_name(entity, entity_type)
     
     audit = AuditLog(
+        academy_id=getattr(entity, 'academy_id', None) or (getattr(user, 'academy_id', None) if user else None),
         entity_type=entity_type,
         entity_id=entity.id,
         entity_name=entity_name,
@@ -250,7 +254,10 @@ def get_history(
 ) -> List[dict]:
     """Get audit log history with filtering."""
     query = db.query(AuditLog)
-    
+    academy_id = db.info.get('academy_id')
+    if academy_id and not db.info.get('bypass_tenant'):
+        query = query.filter(AuditLog.academy_id == academy_id)
+
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)
     if action:
@@ -283,6 +290,9 @@ def get_changes_by_date(
         AuditLog.created_at >= datetime.combine(date, datetime.min.time()),
         AuditLog.created_at < datetime.combine(date, datetime.max.time())
     )
+    academy_id = db.info.get('academy_id')
+    if academy_id and not db.info.get('bypass_tenant'):
+        query = query.filter(AuditLog.academy_id == academy_id)
     
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)
@@ -303,13 +313,17 @@ def get_calendar_changes(
     """Get count of changes per day for a month (for calendar display)."""
     from sqlalchemy import func, extract
     
-    result = db.query(
+    query = db.query(
         extract('day', AuditLog.created_at).label('day'),
         func.count(AuditLog.id).label('count')
     ).filter(
         extract('year', AuditLog.created_at) == year,
         extract('month', AuditLog.created_at) == month
-    ).group_by(
+    )
+    academy_id = db.info.get('academy_id')
+    if academy_id and not db.info.get('bypass_tenant'):
+        query = query.filter(AuditLog.academy_id == academy_id)
+    result = query.group_by(
         extract('day', AuditLog.created_at)
     ).all()
     

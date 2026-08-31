@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker, with_loader_criteria
 from sqlalchemy.pool import QueuePool
 from .config import settings
 import logging
@@ -102,6 +102,42 @@ SessionLocal = sessionmaker(
     bind=engine,
     expire_on_commit=False  # Оптимизация: не истекать объекты после commit
 )
+
+
+@event.listens_for(Session, "do_orm_execute")
+def add_academy_filter(execute_state):
+    """Automatically scope tenant-aware SELECT queries to the active academy."""
+    if not execute_state.is_select:
+        return
+
+    session = execute_state.session
+    academy_id = session.info.get("academy_id")
+    if not academy_id or session.info.get("bypass_tenant"):
+        return
+
+    from app.core.tenant import tenant_models
+
+    statement = execute_state.statement
+    for model in tenant_models():
+        statement = statement.options(
+            with_loader_criteria(
+                model,
+                lambda cls: cls.academy_id == academy_id,
+                include_aliases=True,
+            )
+        )
+    execute_state.statement = statement
+
+
+@event.listens_for(Session, "before_flush")
+def stamp_new_rows_with_academy(session, flush_context, instances):
+    academy_id = session.info.get("academy_id")
+    if not academy_id or session.info.get("bypass_tenant"):
+        return
+
+    for obj in session.new:
+        if hasattr(obj, "academy_id") and getattr(obj, "academy_id", None) is None:
+            setattr(obj, "academy_id", academy_id)
 
 def get_db() -> Session:
     """

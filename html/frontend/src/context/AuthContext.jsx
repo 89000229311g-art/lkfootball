@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../api/client';
+import { academiesAPI, authAPI } from '../api/client';
 import { subscribeToPushNotifications } from '../utils/push';
 
 const defaultAuthContext = {
@@ -50,6 +50,19 @@ export const AuthProvider = ({ children }) => {
       const userResponse = await authAPI.getMe();
       const userData = userResponse.data;
       setUser(userData);
+
+      if (userData?.role !== 'platform_owner') {
+        try {
+          const academyResponse = await academiesAPI.getMe();
+          const slug = academyResponse.data?.slug;
+          if (slug) {
+            localStorage.setItem('academySlug', slug);
+            window.dispatchEvent(new CustomEvent('academySlugChange', { detail: slug }));
+          }
+        } catch (e) {
+          console.warn('Could not sync academy after login', e);
+        }
+      }
       
       // Trigger push subscription check
       subscribeToPushNotifications();
@@ -63,7 +76,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      return response;
+      return userData;
     } catch (error) {
       localStorage.removeItem('token');
       throw error;

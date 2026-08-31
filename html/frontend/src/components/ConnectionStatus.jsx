@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { loggingAPI } from '../api/client';
 
 /**
@@ -12,7 +12,7 @@ export function ConnectionStatus() {
   const [retryCount, setRetryCount] = useState(0);
 
   // Проверка статуса бэкенда
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     try {
       setStatus('checking');
       const controller = new AbortController();
@@ -62,18 +62,19 @@ export function ConnectionStatus() {
       }
       
       setLastError(`${errorMessage} (${baseUrl})`);
-      setRetryCount(prev => prev + 1);
+      const nextRetryCount = retryCount + 1;
+      setRetryCount(nextRetryCount);
       
       // Log critical connection errors to backend
       if (retryCount > 0 && retryCount % 5 === 0) { // Log every 5th retry to avoid spam
           loggingAPI.logFrontendError(
               `Connection failed: ${error.message}`, 
               'ConnectionStatus', 
-              { baseUrl, retryCount: retryCount + 1 }
+              { baseUrl, retryCount: nextRetryCount }
           );
       }
     }
-  };
+  }, [retryCount]);
 
   // Проверка при загрузке и периодическая проверка
   useEffect(() => {
@@ -87,7 +88,7 @@ export function ConnectionStatus() {
     }, 30000);
     
     return () => clearInterval(interval);
-  }, [status]);
+  }, [checkConnection, status]);
 
   // Слушаем ошибки сети
   useEffect(() => {
@@ -105,7 +106,7 @@ export function ConnectionStatus() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [checkConnection]);
 
   if (!showBanner) return null;
 

@@ -1,5 +1,5 @@
 """
-Sunny Football Academy - Main Application
+Football CRM - Main Application
 With security features: Rate Limiting, CORS, Logging
 """
 from fastapi import FastAPI, Request, Body
@@ -24,6 +24,7 @@ from app.routers import (
     push_router, polls, ai, billing as billing_router, leads as leads_router,
     birthday_router,
 )
+from app.routers import academies as academies_router
 from app.routers import funnel as funnel_router
 from app.routers import hr_funnel as hr_funnel_router
 from app.routers import hr_candidates as hr_candidates_router
@@ -87,7 +88,7 @@ async def run_periodic_cleanup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("🚀 Starting Sunny Football Academy API...")
+    logger.info("Starting Football CRM API...")
     
     # Run cleanup immediately on startup
     try:
@@ -242,6 +243,7 @@ app.include_router(history_router.trash_router, prefix=f"{settings.API_V1_STR}",
 app.include_router(settings_router.router, prefix=f"{settings.API_V1_STR}/settings", tags=["settings"])
 app.include_router(stats_router.router, prefix=f"{settings.API_V1_STR}/stats", tags=["stats"])
 app.include_router(logs_router.router, prefix=f"{settings.API_V1_STR}/logs", tags=["logs"])
+app.include_router(academies_router.router, prefix=f"{settings.API_V1_STR}/academies", tags=["academies"])
 app.include_router(hr_funnel_router.router, prefix=f"{settings.API_V1_STR}", tags=["hr-funnel"])
 app.include_router(hr_candidates_router.router, prefix=f"{settings.API_V1_STR}", tags=["hr-candidates"])
 app.include_router(marketing_router.router, prefix=f"{settings.API_V1_STR}", tags=["marketing"])
@@ -253,7 +255,7 @@ app.include_router(tasks_router.router, prefix=f"{settings.API_V1_STR}/tasks", t
 @app.get("/")
 async def root():
     return {
-        "message": "Welcome to Sunny Football Academy",
+        "message": "Welcome to Football CRM",
         "docs_url": "/docs",
         "version": settings.VERSION
     }

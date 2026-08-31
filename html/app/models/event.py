@@ -17,6 +17,7 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="RESTRICT"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="SET NULL"), nullable=True)
     start_time = Column(DateTime)

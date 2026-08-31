@@ -154,6 +154,7 @@ class StudentUpdate(BaseModel):
 
 class StudentInDB(StudentBase):
     id: int
+    academy_id: Optional[int] = None
     balance: Optional[float] = Field(0.0, example=0.0)  # Optional for NULL values
     subscription_expires: Optional[date] = None
     is_debtor: Optional[bool] = False  # Optional for NULL values
