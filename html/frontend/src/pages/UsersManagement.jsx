@@ -130,6 +130,7 @@ export default function UsersManagement() {
   const canSeePasswords = currentUser?.role?.toLowerCase() === 'super_admin' || 
                           currentUser?.role?.toLowerCase() === 'owner' ||
                           currentUser?.role?.toLowerCase() === 'admin';
+  const canManageLeaders = ['super_admin', 'owner'].includes(currentUser?.role?.toLowerCase());
   
   // 📦 Restore user from archive
   const handleRestore = async (user) => {
@@ -624,6 +625,7 @@ export default function UsersManagement() {
     parent: users.filter(u => u.role?.toLowerCase() === 'parent').length,
     coach: users.filter(u => u.role?.toLowerCase() === 'coach').length,
     admin: users.filter(u => u.role?.toLowerCase() === 'admin').length,
+    owner: users.filter(u => u.role?.toLowerCase() === 'owner').length,
     archived: archivedUsers.length,
   };
 
@@ -772,6 +774,22 @@ export default function UsersManagement() {
             </div>
             <span className={`px-2.5 py-1 rounded-lg text-sm font-bold ${activeTab === 'admin' ? 'bg-white/20' : 'bg-white/5'}`}>{counts.admin}</span>
           </button>
+
+          {canManageLeaders && (
+            <button
+              onClick={() => setActiveTab('owner')}
+              className={`px-6 py-3.5 rounded-xl font-medium transition-all duration-200 flex items-center justify-between md:justify-start gap-3 w-full md:w-auto ${
+                activeTab === 'owner'
+                  ? 'bg-gradient-to-r from-yellow-600 to-amber-500 text-white shadow-lg shadow-yellow-500/25'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🤝</span> Руководители
+              </div>
+              <span className={`px-2.5 py-1 rounded-lg text-sm font-bold ${activeTab === 'owner' ? 'bg-white/20' : 'bg-white/5'}`}>{counts.owner}</span>
+            </button>
+          )}
 
           {/* Students without parents tab */}
            <button
@@ -945,8 +963,8 @@ export default function UsersManagement() {
                 {archivedUsers
                   .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
                   .map((user) => {
-                  const roleEmoji = user.role === 'parent' ? '👨‍👩‍👧' : user.role === 'coach' ? '⚽' : '🛡️';
-                  const roleLabel = user.role === 'parent' ? 'Родитель' : user.role === 'coach' ? 'Тренер' : 'Админ';
+                  const roleEmoji = user.role === 'parent' ? '👨‍👩‍👧' : user.role === 'coach' ? '⚽' : user.role === 'owner' ? '👑' : '🛡️';
+                  const roleLabel = user.role === 'parent' ? 'Родитель' : user.role === 'coach' ? 'Тренер' : user.role === 'owner' ? 'Руководитель' : 'Админ';
                   return (
                     <div key={user.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700 gap-4">
                       <div className="flex items-center gap-3 w-full md:w-auto overflow-hidden">
@@ -1041,12 +1059,14 @@ export default function UsersManagement() {
                       .map((cred) => {
                         const roleColors = {
                           super_admin: 'bg-purple-500/20 text-purple-400',
+                          owner: 'bg-yellow-500/20 text-yellow-400',
                           admin: 'bg-rose-500/20 text-rose-400',
                           coach: 'bg-blue-500/20 text-blue-400',
                           parent: 'bg-emerald-500/20 text-emerald-400'
                         };
                         const roleEmoji = {
                           super_admin: '👨‍💼',
+                          owner: '🤝',
                           admin: '🛡️',
                           coach: '⚽',
                           parent: '👨‍👩‍👧'
@@ -1087,12 +1107,14 @@ export default function UsersManagement() {
                     .map((cred) => {
                       const roleColors = {
                         super_admin: 'bg-purple-500/20 text-purple-400',
+                        owner: 'bg-yellow-500/20 text-yellow-400',
                         admin: 'bg-rose-500/20 text-rose-400',
                         coach: 'bg-blue-500/20 text-blue-400',
                         parent: 'bg-emerald-500/20 text-emerald-400'
                       };
                       const roleEmoji = {
                         super_admin: '👨‍💼',
+                        owner: '🤝',
                         admin: '🛡️',
                         coach: '⚽',
                         parent: '👨‍👩‍👧'
@@ -1130,8 +1152,8 @@ export default function UsersManagement() {
         <>
             {filteredUsers.length === 0 ? (
               <div className="text-center py-24 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
-                <div className="text-7xl mb-6">{activeTab === 'parent' ? '👨‍👩‍👧' : activeTab === 'coach' ? '⚽' : '🛡️'}</div>
-                <div className="text-gray-400 text-xl mb-6">Нет {activeTab === 'parent' ? 'родителей' : activeTab === 'coach' ? 'тренеров' : 'администраторов'}</div>
+                <div className="text-7xl mb-6">{activeTab === 'parent' ? '👨‍👩‍👧' : activeTab === 'coach' ? '⚽' : activeTab === 'owner' ? '👑' : '🛡️'}</div>
+                <div className="text-gray-400 text-xl mb-6">Нет {activeTab === 'parent' ? 'родителей' : activeTab === 'coach' ? 'тренеров' : activeTab === 'owner' ? 'руководителей' : 'администраторов'}</div>
                 <button
                   onClick={() => openAddModal(activeTab)}
                   className="bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black px-8 py-3 rounded-xl font-semibold shadow-lg shadow-yellow-500/25 transition-all duration-200 hover:scale-105"
@@ -1174,12 +1196,12 @@ export default function UsersManagement() {
                         <div className="flex items-start gap-4 flex-1 w-full md:w-auto min-w-0">
                           {/* Avatar */}
                           <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white text-xl md:text-2xl overflow-hidden shrink-0 ${
-                            userRole === 'parent' ? 'bg-green-600' : userRole === 'coach' ? 'bg-blue-600' : 'bg-red-600'
+                            userRole === 'parent' ? 'bg-green-600' : userRole === 'coach' ? 'bg-blue-600' : userRole === 'owner' ? 'bg-yellow-600' : 'bg-red-600'
                           }`}>
                             {user.avatar_url ? (
                               <img src={getMediaUrl(user.avatar_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              userRole === 'parent' ? '👨‍👩‍👧' : userRole === 'coach' ? '⚽' : '🔧'
+                              userRole === 'parent' ? '👨‍👩‍👧' : userRole === 'coach' ? '⚽' : userRole === 'owner' ? '👑' : '🔧'
                             )}
                           </div>
                           
@@ -1336,7 +1358,8 @@ export default function UsersManagement() {
                     <span className="flex-1 min-w-0 break-words">
                       {editingUser ? 'Редактировать' : 'Добавить'} {
                         formData.role === 'parent' ? '👨‍👩‍👧 родителя' :
-                        formData.role === 'coach' ? '⚽ тренера' : '🛡️ администратора'
+                        formData.role === 'coach' ? '⚽ тренера' :
+                        formData.role === 'owner' ? '👑 руководителя' : '🛡️ администратора'
                       }
                     </span>
                   </h2>
@@ -1356,7 +1379,8 @@ export default function UsersManagement() {
                     <div className="relative">
                       <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold overflow-hidden ${
                         formData.role === 'parent' ? 'bg-emerald-500' : 
-                        formData.role === 'coach' ? 'bg-blue-500' : 'bg-rose-500'
+                        formData.role === 'coach' ? 'bg-blue-500' :
+                        formData.role === 'owner' ? 'bg-amber-500' : 'bg-rose-500'
                       }`}>
                         {avatarPreview ? (
                           <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
@@ -1672,6 +1696,7 @@ export default function UsersManagement() {
                       <div>
                         {formData.role === 'parent' && 'Основной телефон используется для входа в систему и связи с академией'}
                         {formData.role === 'coach' && 'Тренер будет видеть только свои группы и учеников'}
+                        {formData.role === 'owner' && 'Руководитель академии получает полный доступ: пользователи, финансы, настройки, пароли и роли команды.'}
                         {formData.role === 'admin' && 'Администратор имеет доступ ко всем функциям. Дополнительные права (Аналитика, История) настраиваются выше.'}
                       </div>
                     </div>

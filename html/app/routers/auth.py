@@ -12,11 +12,28 @@ from app.core.rate_limiter import limiter, get_rate_limit
 from app.core.timezone import now_naive  # Moldova timezone
 from app.core import audit_service
 from app.schemas.auth import Token, UserCreate, UserResponse, UserUpdate, UserPagination, PasswordChangeRequest, LanguageRequest
-from app.models import User, UserCredential
+from app.core.tenant import is_platform_owner
+from app.models import Academy, User, UserCredential
 from app.models.user_activity import UserActivityLog
 from app.routers.upload import save_avatar
 
 router = APIRouter()
+
+
+def resolve_academy_from_request(db: Session, request: Request, strict: bool = True) -> Optional[Academy]:
+    slug = (
+        request.headers.get("X-Academy-Slug")
+        or request.query_params.get("academy")
+        or request.query_params.get("academy_slug")
+    )
+    if not slug:
+        return None
+    academy = db.query(Academy).filter(Academy.slug == slug.lower()).first()
+    if not academy or not academy.is_active:
+        if not strict:
+            return None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Academy not found or inactive")
+    return academy
 
 
 # ==================== ФУНКЦИИ ДЛЯ РАБОТЫ С УЧЕТНЫМИ ДАННЫМИ ====================
@@ -78,8 +95,15 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """OAuth2 compatible token login, get an access token for future requests."""
+    academy = resolve_academy_from_request(db, request, strict=False)
+
     # Try exact match first (only active users - not deleted)
-    user = db.query(User).filter(User.phone == form_data.username, User.deleted_at.is_(None)).first()
+    query = db.query(User).filter(User.phone == form_data.username, User.deleted_at.is_(None))
+    if academy:
+        query = query.filter(User.academy_id == academy.id, User.role != "platform_owner")
+    else:
+        query = query.filter(User.role == "platform_owner")
+    user = query.first()
     
     # If not found, try cleaning up phone number
     if not user:
@@ -88,18 +112,33 @@ async def login(
         clean_username = form_data.username.replace("%2B", "+").replace(" ", "")
         
         # 1. Check exact match again with cleaned username
-        user = db.query(User).filter(User.phone == clean_username, User.deleted_at.is_(None)).first()
+        query = db.query(User).filter(User.phone == clean_username, User.deleted_at.is_(None))
+        if academy:
+            query = query.filter(User.academy_id == academy.id, User.role != "platform_owner")
+        else:
+            query = query.filter(User.role == "platform_owner")
+        user = query.first()
         
         if not user:
             # 2. Try adding + if missing
             if not clean_username.startswith("+"):
                 phone_with_plus = "+" + clean_username
-                user = db.query(User).filter(User.phone == phone_with_plus, User.deleted_at.is_(None)).first()
+                query = db.query(User).filter(User.phone == phone_with_plus, User.deleted_at.is_(None))
+                if academy:
+                    query = query.filter(User.academy_id == academy.id, User.role != "platform_owner")
+                else:
+                    query = query.filter(User.role == "platform_owner")
+                user = query.first()
             
             # 3. Try removing + if present (some dbs store without)
             if not user and clean_username.startswith("+"):
                 phone_without_plus = clean_username[1:]
-                user = db.query(User).filter(User.phone == phone_without_plus, User.deleted_at.is_(None)).first()
+                query = db.query(User).filter(User.phone == phone_without_plus, User.deleted_at.is_(None))
+                if academy:
+                    query = query.filter(User.academy_id == academy.id, User.role != "platform_owner")
+                else:
+                    query = query.filter(User.role == "platform_owner")
+                user = query.first()
 
     if user is None or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
@@ -143,13 +182,19 @@ async def login(
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.phone, "role": user.role.lower() if user.role else "parent"},
+        data={
+            "sub": user.phone,
+            "uid": user.id,
+            "role": user.role.lower() if user.role else "parent",
+            "academy_id": user.academy_id,
+        },
         expires_delta=access_token_expires
     )
     
     # --- AUTO-LINKING LOGIC START ---
     # If user is a parent, try to link students by phone number if not already linked
     if user.role.lower() == "parent":
+        db.info["academy_id"] = user.academy_id
         from app.models import Student, StudentGuardian
         
         # Normalize parent phone (last 8 digits)
@@ -455,7 +500,7 @@ async def get_users(
     """
     user_role = current_user.role.lower() if current_user.role else ""
     # Allow staff to view users for assignment
-    if user_role not in ["super_admin", "admin", "owner", "coach", "accountant"]:
+    if user_role not in ["platform_owner", "super_admin", "admin", "owner", "coach", "accountant"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -503,7 +548,7 @@ async def update_user(
     - 👨‍👩‍👧‍👦 Родитель (parent) не может редактировать никого
     """
     current_user_role = current_user.role.lower() if current_user.role else ""
-    if current_user_role not in ["super_admin", "admin", "owner"]:
+    if current_user_role not in ["platform_owner", "super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="❌ У вас нет прав на редактирование пользователей"
@@ -546,7 +591,11 @@ async def update_user(
     
     # Check phone uniqueness if changed
     if user_in.phone and user_in.phone != user.phone:
-        existing_user = db.query(User).filter(User.phone == user_in.phone).first()
+        existing_user = db.query(User).filter(
+            User.phone == user_in.phone,
+            User.academy_id == user.academy_id,
+            User.id != user.id,
+        ).first()
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -811,7 +860,7 @@ async def get_archived_users(
     📦 Получить архивированных (удалённых) пользователей.
     """
     user_role = current_user.role.lower() if current_user.role else ""
-    if user_role not in ["super_admin", "admin", "owner"]:
+    if user_role not in ["platform_owner", "super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав"
@@ -1067,7 +1116,16 @@ async def create_user(
                 detail="❌ Группа не найдена"
             )
     
-    user = db.query(User).filter(User.phone == user_in.phone).first()
+    target_academy_id = user_in.academy_id if is_platform_owner(current_user) else current_user.academy_id
+    if not target_academy_id and user_in.role != "platform_owner":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="❌ Для пользователя должна быть указана академия"
+        )
+
+    target_academy = db.query(Academy).filter(Academy.id == target_academy_id).first() if target_academy_id else None
+
+    user = db.query(User).filter(User.phone == user_in.phone, User.academy_id == target_academy_id).first()
     if user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1077,10 +1135,12 @@ async def create_user(
     # Создаем пользователя
     user = User(
         phone=user_in.phone,
+        academy_id=target_academy_id,
         phone_secondary=user_in.phone_secondary,
         password_hash=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=user_in.role,
+        preferred_language=target_academy.default_language if target_academy else 'ru',
         is_active=True,
         can_view_history=user_in.can_view_history if user_in.role == "admin" and user_role in ["super_admin", "owner"] else False,
         can_view_analytics=user_in.can_view_analytics if user_in.role == "admin" and user_role in ["super_admin", "owner"] else False,
@@ -1156,6 +1216,7 @@ async def create_user(
             dob=dob,
             parent_phone=user_in.phone,
             group_id=user_in.child_group_id,
+            academy_id=target_academy_id,
             medical_info=user_in.child_medical_info, # NEW: Save diseases/allergies
             medical_notes=user_in.child_medical_notes,  # NEW: Save medical notes
             status="active"
@@ -1207,7 +1268,7 @@ async def get_all_credentials(
     current_role = current_user.role.lower() if current_user.role else ""
     
     # super_admin and owner have full access, admin has limited access
-    if current_role not in ["super_admin", "admin", "owner"]:
+    if current_role not in ["platform_owner", "super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="❌ У вас нет прав на просмотр учетных данных"
@@ -1233,6 +1294,8 @@ async def get_all_credentials(
             "id": cred.id,
             "user_id": cred.user_id,
             "full_name": user.full_name if user else "Unknown",
+            "academy_id": user.academy_id if user else None,
+            "academy_slug": user.academy.slug if user and user.academy else None,
             "role": user.role if user else "unknown",
             "role_display": get_role_display_name(user.role) if user else "Unknown",
             "login": cred.login,
@@ -1268,7 +1331,7 @@ async def get_user_credential(
     current_role = current_user.role.lower() if current_user.role else ""
     
     # super_admin and owner have full access, admin has limited access
-    if current_role not in ["super_admin", "admin", "owner"]:
+    if current_role not in ["platform_owner", "super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"

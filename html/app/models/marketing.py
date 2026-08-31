@@ -6,6 +6,7 @@ class MarketingCampaign(Base):
     __tablename__ = "marketing_campaigns"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String, nullable=False)
     status = Column(String, default="planning", index=True)  # planning, preparing, active, paused, scaling, archived
     budget = Column(Float, default=0.0)

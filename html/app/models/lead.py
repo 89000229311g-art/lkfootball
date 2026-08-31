@@ -17,6 +17,7 @@ class Lead(Base):
     __tablename__ = "leads"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String, index=True)
     phone = Column(String, index=True)
     age = Column(Integer, nullable=True)  # New field

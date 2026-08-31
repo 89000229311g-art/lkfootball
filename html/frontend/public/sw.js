@@ -1,15 +1,12 @@
-// Sunny Football Academy - Service Worker
+// Football Academy Platform - Service Worker
 // Provides offline support and caching
 
-const CACHE_NAME = 'sunny-academy-v2';
-const STATIC_CACHE = 'static-v2';
-const API_CACHE = 'api-v2';
+const CACHE_NAME = 'football-crm-pilot-onboarding-v1';
+const STATIC_CACHE = 'football-crm-static-v7';
+const API_CACHE = 'football-crm-api-v7';
 
 // Files to cache immediately
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
@@ -64,6 +61,12 @@ self.addEventListener('fetch', (event) => {
 
   // API requests - Network first, cache fallback
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirstStrategy(request));
+    return;
+  }
+
+  // App shell - network first, so users see new deployments immediately.
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(networkFirstStrategy(request));
     return;
   }

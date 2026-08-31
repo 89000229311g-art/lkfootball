@@ -1,7 +1,11 @@
 
 // Navigation configuration for different user roles
 export const navigationConfig = {
+  platform_owner: [
+    { path: '/platform', labelKey: 'nav_platform', icon: '🏢' },
+  ],
   owner: [
+    { path: '/onboarding', labelKey: 'nav_onboarding', icon: '🚀' },
     { path: '/', labelKey: 'nav_dashboard', icon: '📊' },
     { path: '/crm', labelKey: 'nav_crm', icon: '🧩' },
     { path: '/recruitment', labelKey: 'nav_recruitment', icon: '🧑‍💼' },
@@ -20,6 +24,7 @@ export const navigationConfig = {
     { path: '/settings', labelKey: 'nav_settings', icon: '⚙️' },
   ],
   super_admin: [
+    { path: '/onboarding', labelKey: 'nav_onboarding', icon: '🚀' },
     { path: '/', labelKey: 'nav_dashboard', icon: '📊' },
     { path: '/crm', labelKey: 'nav_crm', icon: '🧩' },
     { path: '/recruitment', labelKey: 'nav_recruitment', icon: '🧑‍💼' },
@@ -38,6 +43,7 @@ export const navigationConfig = {
     { path: '/settings', labelKey: 'nav_settings', icon: '⚙️' },
   ],
   admin: [
+    { path: '/onboarding', labelKey: 'nav_onboarding', icon: '🚀' },
     { path: '/', labelKey: 'nav_dashboard', icon: '📊' },
     { path: '/tasks', labelKey: 'nav_tasks', icon: '📝' },
     { path: '/communications', labelKey: 'nav_communications', icon: '📨' },
@@ -79,6 +85,7 @@ export const navigationConfig = {
 };
 
 export const roleLabelKeys = {
+  platform_owner: 'role_platform_owner',
   super_admin: 'role_sport_director',
   owner: 'role_finance_director',
   admin: 'role_admin',

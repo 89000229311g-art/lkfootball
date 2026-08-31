@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext.jsx';
+import { useAcademy } from '../context/AcademyContext.jsx';
+import { getAcademyLanguageCodes } from '../utils/academyLocale';
 
 const EyeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -24,7 +26,32 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
+  const { academy } = useAcademy();
   const navigate = useNavigate();
+  const brandColor = academy?.primary_color || '#16A34A';
+  const academyLanguageCodes = getAcademyLanguageCodes(academy);
+  const loginLanguages = LANGUAGES.filter((lang) => academyLanguageCodes.includes(lang.code));
+  const showLanguageSelector = loginLanguages.length > 1;
+  const phonePlaceholder = academy?.country_code === 'MD'
+    ? '+37312345678'
+    : academy?.country_code === 'RO'
+      ? '+40712345678'
+      : '+79991234567';
+
+  const getLoginErrorMessage = (err) => {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => item?.msg || item?.message)
+        .filter(Boolean)
+        .join('. ') || t('login_error') || 'Неверный номер телефона или пароль';
+    }
+    if (detail && typeof detail === 'object') {
+      return detail.msg || detail.message || t('login_error') || 'Неверный номер телефона или пароль';
+    }
+    return t('login_error') || 'Неверный номер телефона или пароль';
+  };
 
   // Show a friendly message if session expired
   useEffect(() => {
@@ -43,42 +70,47 @@ export default function Login() {
     setLoading(true);
     
     try {
-      await login(username, password);
-      navigate('/');
+      const userData = await login(username, password);
+      navigate(userData?.role === 'platform_owner' ? '/platform' : '/');
     } catch (err) {
       console.error('Login error:', err);
-      const detail = err.response?.data?.detail;
-      setError(detail || t('login_error') || 'Неверный номер телефона или пароль');
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center bg-gradient-to-br from-green-600 to-green-800 p-4 overflow-y-auto">
+    <div className="min-h-screen flex flex-col justify-center p-4 overflow-y-auto" style={{ background: `linear-gradient(135deg, ${brandColor}, #14532d)` }}>
       <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md mx-auto my-auto">
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold">
-            ☀️ <span className="bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">Sunny Football Academy</span>
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-950">
+            {academy?.logo_url ? (
+              <img src={academy.logo_url} alt="" className="mx-auto mb-3 h-16 w-16 rounded-2xl object-cover" />
+            ) : null}
+            <span>{academy?.name || 'Football Academy'}</span>
           </h1>
           <p className="text-gray-500 mt-2 text-sm md:text-base">{t('login_title')}</p>
           
-          {/* Language Selector */}
-          <div className="flex justify-center gap-2 mt-4">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => changeLanguage(lang.code)}
-                className={`px-3 py-1 rounded-full text-sm transition ${
-                  language === lang.code
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                }`}
-              >
-                {lang.flag}
-              </button>
-            ))}
-          </div>
+          {/* Language Selector: показываем только для стран с несколькими языками */}
+          {showLanguageSelector && (
+            <div className="flex justify-center gap-2 mt-4">
+              {loginLanguages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`px-3 py-1 rounded-full text-sm transition ${
+                    language === lang.code
+                      ? 'text-white'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                  }`}
+                  style={language === lang.code ? { backgroundColor: brandColor } : undefined}
+                >
+                  {lang.flag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -96,8 +128,8 @@ export default function Login() {
               type="tel"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-black"
-              placeholder="+37312345678"
+              className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:border-transparent transition text-black"
+              placeholder={phonePlaceholder}
               required
             />
           </div>
@@ -111,7 +143,7 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition pr-12 text-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:ring-2 focus:border-transparent transition pr-12 text-black"
                 placeholder="••••••••"
                 required
               />
@@ -128,7 +160,8 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-2xl font-semibold hover:bg-green-700 transition disabled:opacity-50"
+            className="w-full text-white py-3 rounded-2xl font-semibold transition disabled:opacity-50"
+            style={{ backgroundColor: brandColor }}
           >
             {loading ? t('loading') : t('login_button')}
           </button>

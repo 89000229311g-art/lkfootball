@@ -6,6 +6,7 @@ class HRCandidate(Base):
     __tablename__ = "hr_candidates"
 
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     full_name = Column(String, nullable=False)
     target_role = Column(String, default="coach")
     phone = Column(String, nullable=True)

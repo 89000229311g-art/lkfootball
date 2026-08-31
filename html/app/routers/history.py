@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.tenant import set_tenant_context
 from app.core.timezone import now_naive
 from app.core import audit_service
 from app.models.user import User
@@ -114,6 +115,7 @@ async def get_history(
     """
     # Fix: Allow access for all authorized users with permission
     require_history_access(current_user)
+    set_tenant_context(db, current_user)
     
     items = audit_service.get_history(
         db, 
@@ -139,6 +141,7 @@ async def get_calendar_changes(
     Returns dict {day: count}.
     """
     require_history_access(current_user)
+    set_tenant_context(db, current_user)
     
     changes_by_day = audit_service.get_calendar_changes(db, year, month)
     
@@ -161,6 +164,7 @@ async def get_changes_by_date(
     Get all changes for a specific date.
     """
     require_history_access(current_user)
+    set_tenant_context(db, current_user)
     
     try:
         target_date = datetime.strptime(date, "%Y-%m-%d")
@@ -173,7 +177,7 @@ async def get_changes_by_date(
     
     return {
         "date": date,
-        "items": [item.to_dict() for item in changes]
+        "items": changes
     }
 
 
@@ -187,6 +191,7 @@ async def restore_version(
     Restore an entity to a previous version based on audit log.
     """
     require_history_access(current_user)
+    set_tenant_context(db, current_user)
     
     new_audit = audit_service.restore_to_version(db, audit_id, current_user)
     
@@ -210,6 +215,7 @@ async def get_trash(
     Get all items in trash (soft deleted).
     """
     require_trash_access(current_user)
+    set_tenant_context(db, current_user)
     
     result = audit_service.get_trash_items(db)
     

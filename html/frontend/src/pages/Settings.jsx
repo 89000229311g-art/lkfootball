@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage, LANGUAGES } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { authAPI, studentsAPI, usersAPI, settingsAPI, uploadAPI as fileUploadAPI } from '../api/client';
+import { useAcademy } from '../context/AcademyContext';
+import { getAcademyLanguageCodes } from '../utils/academyLocale';
 import PasswordInput from '../components/PasswordInput';
 import AvatarUpload from '../components/AvatarUpload';
 import BirthdayTemplateModal from '../components/BirthdayTemplateModal';
@@ -11,6 +13,7 @@ import { Upload, X, Image as ImageIcon, Loader2, HelpCircle, Gift } from 'lucide
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const { language, changeLanguage, t } = useLanguage();
+  const { academy } = useAcademy();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState(true);
   const [showBirthdayTemplates, setShowBirthdayTemplates] = useState(false);
@@ -31,6 +34,10 @@ export default function Settings() {
   const [features, setFeatures] = useState({
     block_attendance_without_medical_certificate: false
   });
+
+  const academyLanguageCodes = getAcademyLanguageCodes(academy);
+  const availableLanguages = LANGUAGES.filter((lang) => academyLanguageCodes.includes(lang.code));
+  const showLanguageSettings = availableLanguages.length > 1;
 
   const isParent = user?.role?.toLowerCase() === 'parent';
   const isOwner = ['super_admin', 'owner'].includes(user?.role?.toLowerCase());
@@ -613,35 +620,59 @@ export default function Settings() {
 
       {/* Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Language Section */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-            <span className="text-yellow-400">🌐</span> {t('language')}
-          </h2>
-          <div className="space-y-3">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => changeLanguage(lang.code)}
-                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                  language === lang.code
-                    ? 'border-yellow-500/50 bg-yellow-500/10'
-                    : 'border-white/10 hover:border-yellow-500/30 hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{lang.flag}</span>
-                  <span className={`font-medium ${language === lang.code ? 'text-yellow-400' : 'text-white'}`}>
-                    {lang.name}
-                  </span>
-                </div>
-                {language === lang.code && (
-                  <span className="text-yellow-400 text-xl">✓</span>
-                )}
-              </button>
-            ))}
+        {/* Language Section: только для мультиязычных стран */}
+        {showLanguageSettings && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+              <span className="text-yellow-400">🌐</span> {t('language')}
+            </h2>
+            <div className="space-y-3">
+              {availableLanguages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    language === lang.code
+                      ? 'border-yellow-500/50 bg-yellow-500/10'
+                      : 'border-white/10 hover:border-yellow-500/30 hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{lang.flag}</span>
+                    <span className={`font-medium ${language === lang.code ? 'text-yellow-400' : 'text-white'}`}>
+                      {lang.name}
+                    </span>
+                  </div>
+                  {language === lang.code && (
+                    <span className="text-yellow-400 text-xl">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Roles and access shortcut */}
+        {isAdmin && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="text-yellow-400">🔐</span> Роли и доступы команды
+            </h2>
+            <div className="space-y-2 text-sm text-white/60 mb-4">
+              <div><b className="text-white">Руководитель академии</b> — полный доступ к кабинету.</div>
+              <div><b className="text-white">Администратор</b> — доступы к истории, аналитике, CRM, найму и маркетингу настраивает руководитель.</div>
+              <div><b className="text-white">Тренер</b> — группы, ученики, расписание и посещаемость.</div>
+              <div><b className="text-white">Родитель</b> — личный кабинет ребёнка, платежи и сообщения.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/users-management')}
+              className="w-full rounded-xl bg-yellow-500 px-4 py-3 font-bold text-black hover:bg-yellow-400"
+            >
+              Настроить пользователей и доступы
+            </button>
+          </div>
+        )}
 
         {/* Birthday Templates Settings (Admins Only) */}
         {isAdmin && (
@@ -708,7 +739,7 @@ export default function Settings() {
               </div>
               <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/10">
                 <span className="text-white/60">{t('app_name')}</span>
-                <span className="font-medium text-white">Sunny Football Academy</span>
+                <span className="font-medium text-white">Football CRM</span>
               </div>
             </div>
           </div>

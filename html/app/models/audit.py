@@ -25,6 +25,7 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
     
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # What was changed
     entity_type = Column(String(50), nullable=False, index=True)  # group, student, payment, etc.
@@ -99,6 +100,7 @@ class AuditLog(Base):
         """Convert to dictionary for API response"""
         return {
             "id": self.id,
+            "academy_id": self.academy_id,
             "entity_type": self.entity_type,
             "entity_type_label": self.ENTITY_LABELS.get(self.entity_type, self.entity_type),
             "entity_id": self.entity_id,

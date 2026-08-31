@@ -18,6 +18,7 @@ router = APIRouter(prefix="/hr/funnel", tags=["HR Settings"])
 @router.get("/", response_model=List[HRFunnelStageResponse])
 def get_hr_stages(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return db.query(HRFunnelStage).order_by(HRFunnelStage.order).all()
 
@@ -96,6 +97,7 @@ def reorder_hr_stages(
 @router.post("/init-defaults")
 def init_default_hr_stages(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if db.query(HRFunnelStage).count() > 0:
         return {"message": "HR stages already initialized"}

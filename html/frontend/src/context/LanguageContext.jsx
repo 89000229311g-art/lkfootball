@@ -9,6 +9,7 @@ const translations = {
     // Navigation
     locale: 'ru-RU',
     nav_dashboard: 'Главная',
+    nav_onboarding: 'Первый запуск',
     nav_students: 'Ученики',
     nav_groups: 'Группы',
     nav_events: 'События',
@@ -18,6 +19,7 @@ const translations = {
     nav_payments: 'Платежи',
     nav_chat: 'Чат',
     nav_settings: 'Настройки',
+    nav_platform: 'Платформа',
     nav_history: 'История',
     nav_coach_analytics: 'Аналитика тренера',
     nav_schedule: 'Расписание',
@@ -431,7 +433,7 @@ const translations = {
     role_owner: 'Руководитель',
     role_accountant: 'Бухгалтер',
     role_sport_director: 'Спортивный директор',
-    role_finance_director: 'Финансовый директор',
+    role_finance_director: 'Руководитель академии',
     
     // Chat & Support
     write_to_admin: 'Написать администрации',
@@ -2191,6 +2193,7 @@ const translations = {
     // Navigation
     locale: 'ro-RO',
     nav_dashboard: 'Panou',
+    nav_onboarding: 'Prima configurare',
     nav_students: 'Elevi',
     nav_groups: 'Grupuri',
     nav_events: 'Evenimente',
@@ -2201,6 +2204,7 @@ const translations = {
     nav_payments: 'Plăți',
     nav_chat: 'Chat',
     nav_settings: 'Setări',
+    nav_platform: 'Platformă',
     nav_history: 'Istoric',
     nav_coach_analytics: 'Analitică Antrenor',
     nav_crm: 'CRM',

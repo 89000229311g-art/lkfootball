@@ -33,11 +33,14 @@ const Tasks = lazy(() => import('./pages/Tasks'));
 const AcademicDiary = lazy(() => import('./components/AcademicDiary'));
 const GroupAnalytics = lazy(() => import('./components/GroupAnalytics'));
 const NewContractWizard = lazy(() => import('./pages/NewContractWizard'));
+const PlatformAdmin = lazy(() => import('./pages/PlatformAdmin'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 function normalizeRole(role) {
   if (!role) return null;
   const r = role.toString().toLowerCase().trim();
   if (r === 'super_admin' || r === 'super admin' || r === 'userrole.super_admin') return 'super_admin';
+  if (r === 'platform_owner' || r === 'platform owner' || r === 'userrole.platform_owner') return 'platform_owner';
   if (r === 'owner' || r === 'userrole.owner') return 'owner';
   if (r === 'admin' || r === 'administrator' || r === 'userrole.admin') return 'admin';
   if (r === 'accountant' || r === 'userrole.accountant') return 'accountant';
@@ -67,7 +70,7 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" />;
 }
 
-function RoleRoute({ children, allowedRoles }) {
+function RoleRoute({ children, allowedRoles, redirectTo = '/' }) {
   const auth = useAuth();
   const user = auth?.user;
   
@@ -76,9 +79,16 @@ function RoleRoute({ children, allowedRoles }) {
   const userRole = normalizeRole(user?.role);
   
   if (!allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
   
+  return children;
+}
+
+function PlatformOnlyRoute({ children }) {
+  if (window.__ACADEMY_SLUG__) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 
@@ -113,15 +123,31 @@ function App() {
       }>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/platform" element={
+            <PlatformOnlyRoute>
+              <PrivateRoute>
+                <RoleRoute allowedRoles={['platform_owner']}>
+                  <PlatformAdmin />
+                </RoleRoute>
+              </PrivateRoute>
+            </PlatformOnlyRoute>
+          } />
           <Route
             path="/"
             element={
               <PrivateRoute>
-                <Layout />
+                <RoleRoute allowedRoles={['super_admin', 'owner', 'admin', 'accountant', 'coach', 'parent']} redirectTo="/platform">
+                  <Layout />
+                </RoleRoute>
               </PrivateRoute>
             }
           >
           <Route index element={<Dashboard />} />
+          <Route path="onboarding" element={
+            <RoleRoute allowedRoles={['super_admin', 'owner', 'admin']}>
+              <Onboarding />
+            </RoleRoute>
+          } />
           <Route path="news" element={<NewsFeed />} />
                   <Route path="communications" element={<Communications />} />
           <Route path="students" element={<Students />} />

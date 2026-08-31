@@ -23,6 +23,10 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const academySlug = window.__ACADEMY_SLUG__ || (window.__PLATFORM_LOGIN__ ? null : localStorage.getItem('academySlug'));
+  if (academySlug) {
+    config.headers['X-Academy-Slug'] = academySlug;
+  }
   return config;
 });
 
@@ -49,8 +53,10 @@ apiClient.interceptors.response.use(
 
       // Всегда выкидываем на логин при 401 (кроме исключений), так как это означает невалидный токен
       localStorage.removeItem('token');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const academySlug = window.__ACADEMY_SLUG__;
+      const loginPath = academySlug ? `/${academySlug}/login` : '/login';
+      if (window.location.pathname !== loginPath) {
+        window.location.href = loginPath;
       }
     }
     return Promise.reject(error);
@@ -92,6 +98,15 @@ export const authAPI = {
   }),
   deleteAvatar: () => apiClient.delete('/users/avatar'),
   getUsers: (params) => apiClient.get('/auth/users', { params }),
+};
+
+export const academiesAPI = {
+  getPublic: (slug) => apiClient.get(`/academies/public/${slug}`),
+  getMe: () => apiClient.get('/academies/me'),
+  getAll: () => apiClient.get('/academies/'),
+  create: (data) => apiClient.post('/academies/', data),
+  update: (id, data) => apiClient.put(`/academies/${id}`, data),
+  createAdmin: (id, data) => apiClient.post(`/academies/${id}/admin`, data),
 };
 
 // Users API

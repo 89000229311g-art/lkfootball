@@ -21,6 +21,7 @@ class ScheduleTemplate(Base):
     __tablename__ = "schedule_templates"
     
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False)
     
     # Название шаблона (например "Основное расписание U10")
@@ -66,6 +67,7 @@ class GeneratedEvent(Base):
     __tablename__ = "generated_events"
     
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     template_id = Column(Integer, ForeignKey("schedule_templates.id", ondelete="CASCADE"), nullable=False)
     event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
     
@@ -91,6 +93,7 @@ class ScheduleChange(Base):
     __tablename__ = "schedule_changes"
     
     id = Column(Integer, primary_key=True, index=True)
+    academy_id = Column(Integer, ForeignKey("academies.id", ondelete="CASCADE"), nullable=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id", ondelete="CASCADE"), nullable=False, index=True)
     
