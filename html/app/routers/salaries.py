@@ -116,9 +116,9 @@ async def get_contracts(
     - super_admin, accountant: See all contracts
     - Others: See only own contract
     """
+    role = current_user.role.lower() if current_user.role else ""
     if not can_manage_salaries(current_user):
-        # Non-managers can only see their own
-        user_id = current_user.id
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостаточно прав для просмотра зарплатных контрактов")
     
     query = db.query(EmployeeContract)
     
@@ -519,7 +519,7 @@ async def get_payments(
     - Others: See only own payments
     """
     if not can_manage_salaries(current_user):
-        user_id = current_user.id
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостаточно прав для просмотра зарплатных выплат")
     
     query = db.query(SalaryPayment)
     

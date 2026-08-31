@@ -600,6 +600,8 @@ async def get_payments(
             "limit": limit,
             "pages": (total + limit - 1) // limit
         }
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         print(f"ERROR in get_payments: {e}")

@@ -15,11 +15,21 @@ from app.models.user import User
 router = APIRouter(prefix="/hr/funnel", tags=["HR Settings"])
 
 
+def ensure_hr_manager(user: User):
+    role = user.role.lower() if user.role else ""
+    if role in ["platform_owner", "super_admin", "owner"]:
+        return
+    if role == "admin" and getattr(user, "can_view_recruitment", False):
+        return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостаточно прав для HR")
+
+
 @router.get("/", response_model=List[HRFunnelStageResponse])
 def get_hr_stages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     return db.query(HRFunnelStage).order_by(HRFunnelStage.order).all()
 
 
@@ -29,6 +39,7 @@ def create_hr_stage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     if db.query(HRFunnelStage).filter(HRFunnelStage.key == stage_in.key).first():
         raise HTTPException(status_code=400, detail="Stage key already exists")
 
@@ -46,6 +57,7 @@ def update_hr_stage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     stage = db.query(HRFunnelStage).filter(HRFunnelStage.id == stage_id).first()
     if not stage:
         raise HTTPException(status_code=404, detail="Stage not found")
@@ -68,6 +80,7 @@ def delete_hr_stage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     stage = db.query(HRFunnelStage).filter(HRFunnelStage.id == stage_id).first()
     if not stage:
         raise HTTPException(status_code=404, detail="Stage not found")
@@ -83,6 +96,7 @@ def reorder_hr_stages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     stages = db.query(HRFunnelStage).filter(HRFunnelStage.id.in_(ordered_ids)).all()
     stage_map = {s.id: s for s in stages}
 
@@ -99,6 +113,7 @@ def init_default_hr_stages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    ensure_hr_manager(current_user)
     if db.query(HRFunnelStage).count() > 0:
         return {"message": "HR stages already initialized"}
 

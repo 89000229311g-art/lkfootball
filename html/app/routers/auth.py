@@ -500,7 +500,7 @@ async def get_users(
     """
     user_role = current_user.role.lower() if current_user.role else ""
     # Allow staff to view users for assignment
-    if user_role not in ["platform_owner", "super_admin", "admin", "owner", "coach", "accountant"]:
+    if user_role not in ["platform_owner", "super_admin", "admin", "owner"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
